@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  workflow_dispatch:  # 수동으로만 실행
+    inputs:
+      branch:
+        description: '빌드 테스트할 브랜치'
+        required: true
+        default: 'develop'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew bootJar --no-daemon
