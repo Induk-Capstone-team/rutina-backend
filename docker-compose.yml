@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  # 로컬 개발 시 Redis만 컨테이너로 실행
+  # Spring Boot 앱은 IntelliJ에서 직접 실행하므로 여기선 포함 안 함
+  redis:
+    image: redis:7-alpine  # 경량 Alpine Linux 기반 Redis 이미지
+    ports:
+      - "6379:6379"  # 호스트:컨테이너 포트 매핑, Spring Boot에서 localhost:6379로 접근
+    restart: always  # 컨테이너 종료 시 자동 재시작

@@ -1,0 +1,20 @@
+name: SSH Connection Test
+
+on:
+  workflow_dispatch:  # 수동으로만 실행
+
+jobs:
+  ssh-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test SSH Connection to Lightsail
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            echo "SSH 연결 성공"
+            docker --version
+            docker compose version
