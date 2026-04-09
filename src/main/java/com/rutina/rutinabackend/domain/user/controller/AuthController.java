@@ -40,6 +40,13 @@ public class AuthController {
         return ApiResponse.ok("토큰이 재발급되었습니다.", response);
     }
 
+    // 로그아웃
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestBody @Valid TokenRefreshRequest request) {
+        authService.logout(request);
+        return ApiResponse.ok("로그아웃되었습니다.", null);
+    }
+
     // 이메일 중복 확인
     @GetMapping("/check-email")
     public ApiResponse<Map<String, Boolean>> checkEmail(@RequestParam String email) {
