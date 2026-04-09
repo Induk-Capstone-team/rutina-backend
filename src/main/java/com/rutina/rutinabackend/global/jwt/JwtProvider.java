@@ -73,4 +73,8 @@ public class JwtProvider {
     public Long getUserId(String token) {
         return Long.valueOf(parseToken(token).getSubject());
     }
+
+    public long getRefreshTokenExpiry() {
+        return refreshTokenExpiry;
+    }
 }

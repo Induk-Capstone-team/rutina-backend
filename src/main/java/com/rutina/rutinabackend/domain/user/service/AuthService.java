@@ -1,8 +1,10 @@
 package com.rutina.rutinabackend.domain.user.service;
 
+import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.refreshToken.entity.RefreshToken;
 import com.rutina.rutinabackend.domain.user.entity.User;
+import java.time.OffsetDateTime;
 import com.rutina.rutinabackend.domain.refreshToken.repository.RefreshTokenRepository;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
@@ -61,6 +63,40 @@ public class AuthService {
         );
 
         return LoginResponse.of(accessToken, refreshToken);
+    }
+
+    // ── 토큰 재발급 (refresh token rotation) ────────────────
+    @Transactional
+    public LoginResponse reissue(TokenRefreshRequest request) {
+
+        // JWT 서명·만료 검증
+        if (!jwtProvider.isValid(request.refreshToken())) {
+            throw ErrorCode.INVALID_REFRESH_TOKEN.toException();
+        }
+
+        // DB에 저장된 토큰인지 확인
+        RefreshToken saved = refreshTokenRepository.findByTokenValue(request.refreshToken())
+                .orElseThrow(ErrorCode.INVALID_REFRESH_TOKEN::toException);
+
+        // DB expires_at 만료 검증
+        if (saved.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            refreshTokenRepository.delete(saved);
+            throw ErrorCode.INVALID_REFRESH_TOKEN.toException();
+        }
+
+        User user = saved.getUser();
+
+        // 새 토큰 발급 (rotation)
+        String newAccessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
+        String newRefreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
+
+        // 기존 토큰 교체
+        refreshTokenRepository.delete(saved);
+        refreshTokenRepository.save(
+                RefreshToken.of(user, newRefreshToken, jwtProvider.getRefreshTokenExpiry())
+        );
+
+        return LoginResponse.of(newAccessToken, newRefreshToken);
     }
 
     // ── 이메일 중복 확인 ─────────────────────────
