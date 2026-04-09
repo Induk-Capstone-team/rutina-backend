@@ -25,6 +25,13 @@ public class AuthController {
         return ApiResponse.created("회원가입이 완료되었습니다.", response);
     }
 
+    // 로컬 로그인
+    @PostMapping("/login")
+    public ApiResponse<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ApiResponse.ok("로그인에 성공했습니다.", response);
+    }
+
     // 이메일 중복 확인
     @GetMapping("/check-email")
     public ApiResponse<Map<String, Boolean>> checkEmail(@RequestParam String email) {
