@@ -99,6 +99,13 @@ public class AuthService {
         return LoginResponse.of(newAccessToken, newRefreshToken);
     }
 
+    // ── 로그아웃 ──────────────────────────────────────────────
+    @Transactional
+    public void logout(TokenRefreshRequest request) {
+        refreshTokenRepository.findByTokenValue(request.refreshToken())
+                .ifPresent(refreshTokenRepository::delete);
+    }
+
     // ── 이메일 중복 확인 ─────────────────────────
     @Transactional(readOnly = true)
     public boolean checkEmailDuplicate(String email) {
