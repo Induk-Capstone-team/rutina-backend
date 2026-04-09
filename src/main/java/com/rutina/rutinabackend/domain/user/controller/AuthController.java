@@ -1,5 +1,6 @@
 package com.rutina.rutinabackend.domain.user.controller;
 
+import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.user.service.AuthService;
 import com.rutina.rutinabackend.global.response.ApiResponse;
@@ -30,6 +31,13 @@ public class AuthController {
     public ApiResponse<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ApiResponse.ok("로그인에 성공했습니다.", response);
+    }
+
+    // 토큰 재발급
+    @PostMapping("/reissue")
+    public ApiResponse<LoginResponse> reissue(@RequestBody @Valid TokenRefreshRequest request) {
+        LoginResponse response = authService.reissue(request);
+        return ApiResponse.ok("토큰이 재발급되었습니다.", response);
     }
 
     // 이메일 중복 확인
