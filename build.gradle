@@ -64,7 +64,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai' //제미나이 스타터로 설정
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16'
 
     // ── Test ──────────────────────────────────────────────
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
