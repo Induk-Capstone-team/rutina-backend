@@ -1,6 +1,5 @@
 package com.rutina.rutinabackend.domain.user.service;
 
-import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.refreshToken.entity.RefreshToken;
 import com.rutina.rutinabackend.domain.user.entity.User;
@@ -43,7 +42,7 @@ public class AuthService {
 
     // ── 로그인 ─────────────────────────────────────────────
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, String device) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(ErrorCode.INVALID_CREDENTIALS::toException);
@@ -56,10 +55,10 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
 
-        // 기존 refresh token 삭제 후 신규 저장 (1인 1토큰)
-        refreshTokenRepository.deleteByUserId(user.getId());
+        // 같은 기기 재로그인 시 해당 기기 토큰만 교체 (다른 기기 토큰 유지)
+        refreshTokenRepository.deleteByUserIdAndDevice(user.getId(), device);
         refreshTokenRepository.save(
-                RefreshToken.of(user, refreshToken, jwtProvider.getRefreshTokenExpiry())
+                RefreshToken.of(user, refreshToken, jwtProvider.getRefreshTokenExpiry(), device)
         );
 
         return LoginResponse.of(accessToken, refreshToken);
@@ -67,15 +66,15 @@ public class AuthService {
 
     // ── 토큰 재발급 (refresh token rotation) ────────────────
     @Transactional
-    public LoginResponse reissue(TokenRefreshRequest request) {
+    public LoginResponse reissue(String refreshToken, String device) {
 
         // JWT 서명·만료 검증
-        if (!jwtProvider.isValid(request.refreshToken())) {
+        if (!jwtProvider.isValid(refreshToken)) {
             throw ErrorCode.INVALID_REFRESH_TOKEN.toException();
         }
 
         // DB에 저장된 토큰인지 확인
-        RefreshToken saved = refreshTokenRepository.findByTokenValue(request.refreshToken())
+        RefreshToken saved = refreshTokenRepository.findByTokenValue(refreshToken)
                 .orElseThrow(ErrorCode.INVALID_REFRESH_TOKEN::toException);
 
         // DB expires_at 만료 검증
@@ -93,16 +92,16 @@ public class AuthService {
         // 기존 토큰 교체
         refreshTokenRepository.delete(saved);
         refreshTokenRepository.save(
-                RefreshToken.of(user, newRefreshToken, jwtProvider.getRefreshTokenExpiry())
+                RefreshToken.of(user, newRefreshToken, jwtProvider.getRefreshTokenExpiry(), device)
         );
 
         return LoginResponse.of(newAccessToken, newRefreshToken);
     }
 
     // ── 로그아웃 ──────────────────────────────────────────────
-    @Transactional
-    public void logout(TokenRefreshRequest request) {
-        refreshTokenRepository.findByTokenValue(request.refreshToken())
+    @Transactional // refreshToken으로 기기별 로그아웃
+    public void logout(String refreshToken) {
+        refreshTokenRepository.findByTokenValue(refreshToken)
                 .ifPresent(refreshTokenRepository::delete);
     }
 
