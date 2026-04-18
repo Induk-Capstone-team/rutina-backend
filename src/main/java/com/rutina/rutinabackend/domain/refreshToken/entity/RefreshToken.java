@@ -28,6 +28,9 @@ public class RefreshToken {
     @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
 
+    @Column(name = "device")
+    private String device;
+
     @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMPTZ DEFAULT now()")
     private OffsetDateTime createdAt;
@@ -36,11 +39,12 @@ public class RefreshToken {
             columnDefinition = "TIMESTAMPTZ DEFAULT now()")
     private OffsetDateTime updatedAt;
 
-    public static RefreshToken of(User user, String tokenValue, long expiryMs) {
+    public static RefreshToken of(User user, String tokenValue, long expiryMs, String device) {
         RefreshToken token = new RefreshToken();
         token.user = user;
         token.tokenValue = tokenValue;
         token.expiresAt = OffsetDateTime.now().plusNanos(expiryMs * 1_000_000L);
+        token.device = device;
         token.createdAt = OffsetDateTime.now();
         token.updatedAt = OffsetDateTime.now();
         return token;
