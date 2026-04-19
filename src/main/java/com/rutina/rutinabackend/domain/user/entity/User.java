@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLRestriction("deleted_at IS NULL")   // soft delete - 조회 시 자동 필터링
+@SQLRestriction("deleted_at IS NULL")   // soft delete - 조회 시 자동 필터만
 public class User {
 
     @Id
@@ -49,7 +49,7 @@ public class User {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
-    // ── 일반 회원가입용 정적 팩토리 ──────────────────────────
+    // 일반 회원가입용 정적 팩토리 메서드
     public static User createLocal(String email, String encodedPassword, String nickname) {
         User user = new User();
         user.email = email;
@@ -61,4 +61,18 @@ public class User {
         user.updatedAt = OffsetDateTime.now();
         return user;
     }
+
+    // 소셜 로그인 정적 팩토리 메서드
+    public static User createOAuth(String email, String nickname, String provider, String providerId) {
+        User user = new User();
+        user.email = email;
+        user.nickname = nickname;
+        user.role = "USER";
+        user.provider = provider;
+        user.providerId = providerId;
+        user.createdAt = OffsetDateTime.now();
+        user.updatedAt = OffsetDateTime.now();
+        return user;
+    }
+
 }
