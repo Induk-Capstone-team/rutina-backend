@@ -10,8 +10,8 @@ import com.rutina.rutinabackend.domain.routine.repository.RoutineRepository;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.exception.BusinessException;
-import com.rutina.rutinabackend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,11 +38,11 @@ public class CategoryService {
 
         // 같은 사용자 기준 이름 중복 방지
         if (categoryRepository.existsByUser_IdAndName(userId, categoryName)) {
-            throw new BusinessException(ErrorCode.CATEGORY_NAME_ALREADY_EXISTS);
+            throw new BusinessException(HttpStatus.CONFLICT, "CATEGORY_409", "이미 같은 이름의 카테고리가 존재합니다.");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_404", "사용자를 찾을 수 없습니다."));
 
         // 기존 카테고리를 전부 뒤로 한 칸씩 밀어서
         // 새 카테고리가 0번 순서로 들어갈 수 있게 함
@@ -85,7 +85,7 @@ public class CategoryService {
         String categoryName = request.getName().trim();
 
         if (categoryRepository.existsByUser_IdAndNameAndIdNot(userId, categoryName, categoryId)) {
-            throw new BusinessException(ErrorCode.CATEGORY_NAME_ALREADY_EXISTS);
+            throw new BusinessException(HttpStatus.CONFLICT, "CATEGORY_409", "이미 같은 이름의 카테고리가 존재합니다.");
         }
 
         category.update(
@@ -106,7 +106,7 @@ public class CategoryService {
 
         // 사용자의 전체 카테고리 개수와 요청 개수가 다르면 잘못된 요청
         if (categories.size() != requestIds.size()) {
-            throw new BusinessException(ErrorCode.INVALID_CATEGORY_ORDER_REQUEST);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "CATEGORY_400", "잘못된 카테고리 순서 요청입니다.");
         }
 
         // 요청으로 들어온 id들이 정말 이 사용자의 카테고리 id 목록과 일치하는지 검증
@@ -120,7 +120,7 @@ public class CategoryService {
                 .toList();
 
         if (!ownedIds.equals(sortedRequestIds)) {
-            throw new BusinessException(ErrorCode.INVALID_CATEGORY_ORDER_REQUEST);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "CATEGORY_400", "잘못된 카테고리 순서 요청입니다.");
         }
 
         // id -> Category 매핑
@@ -139,10 +139,10 @@ public class CategoryService {
     public void deleteCategory(Long userId, Long categoryId) {
         Category category = findCategory(userId, categoryId);
 
-        // FK 충돌 방지를 위해
-        // 이 카테고리를 참조하는 루틴들의 category_id를 먼저 null 처리
-        routineRepository.clearCategoryFromRoutines(userId, categoryId);
+        // 해당 카테고리에 속한 루틴도 함께 삭제
+        routineRepository.deleteByUserIdAndCategoryId(userId, categoryId);
 
+        // 그 다음 카테고리 삭제
         categoryRepository.delete(category);
     }
 
@@ -150,6 +150,6 @@ public class CategoryService {
     // 항상 userId까지 같이 걸어서 본인 카테고리만 접근 가능하게 함
     private Category findCategory(Long userId, Long categoryId) {
         return categoryRepository.findByIdAndUser_Id(categoryId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "CATEGORY_404", "카테고리를 찾을 수 없습니다."));
     }
 }
