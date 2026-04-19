@@ -19,14 +19,13 @@ public class Category {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String name;
 
-    @Column(name = "color_code", nullable = false)
+    @Column(name = "color_code", nullable = false, length = 7)
     private String colorCode;
 
-
-    @Column(name = "rt_sum", nullable = false)
+    @Column(name = "rt_sum", nullable = false, length = 10)
     private String rtSum;   // 카테고리 루틴 집계값
 
     @Column(name = "sort_order", nullable = false)
@@ -51,5 +50,12 @@ public class Category {
         category.createdAt = OffsetDateTime.now();
         category.updatedAt = OffsetDateTime.now();
         return category;
+    }
+    // ── 카테고리 수정 시 사용 ──────────────────────────
+    public void update(String name, String colorCode, Integer sortOrder) {
+        this.name = name;
+        this.colorCode = colorCode;
+        this.sortOrder = sortOrder;
+        this.updatedAt = OffsetDateTime.now();
     }
 }
