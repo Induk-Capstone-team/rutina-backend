@@ -55,7 +55,13 @@ public class Category {
     public void update(String name, String colorCode, Integer sortOrder) {
         this.name = name;
         this.colorCode = colorCode;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    // ── 드래그 정렬 시 순서값 변경  ──────────────────────────
+    public void updateSortOrder(Integer sortOrder) {
         this.sortOrder = sortOrder;
         this.updatedAt = OffsetDateTime.now();
     }
+
 }
