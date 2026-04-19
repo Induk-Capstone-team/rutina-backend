@@ -52,7 +52,7 @@ public class Category {
         return category;
     }
     // ── 카테고리 수정 시 사용 ──────────────────────────
-    public void update(String name, String colorCode, Integer sortOrder) {
+    public void update(String name, String colorCode) {
         this.name = name;
         this.colorCode = colorCode;
         this.updatedAt = OffsetDateTime.now();
