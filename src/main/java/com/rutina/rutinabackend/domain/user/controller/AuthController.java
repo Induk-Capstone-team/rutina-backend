@@ -1,8 +1,8 @@
 package com.rutina.rutinabackend.domain.user.controller;
 
+import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.user.service.AuthService;
-import com.rutina.rutinabackend.global.exception.ErrorCode;
 import com.rutina.rutinabackend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -44,19 +44,20 @@ public class AuthController {
     }
 
     @Operation(summary = "토큰 재발급")
+    @SecurityRequirements({})
     @PostMapping("/reissue")
-    public ApiResponse<LoginResponse> reissue(HttpServletRequest httpRequest) {
-        String refreshToken = extractBearerToken(httpRequest);
+    public ApiResponse<LoginResponse> reissue(@RequestBody @Valid TokenRefreshRequest request,
+                                              HttpServletRequest httpRequest) {
         String device = httpRequest.getHeader("User-Agent");
-        LoginResponse response = authService.reissue(refreshToken, device);
+        LoginResponse response = authService.reissue(request, device);
         return ApiResponse.ok("토큰이 재발급되었습니다.", response);
     }
 
     @Operation(summary = "로그아웃")
+    @SecurityRequirements({})
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(HttpServletRequest httpRequest) {
-        String refreshToken = extractBearerToken(httpRequest);
-        authService.logout(refreshToken);
+    public ApiResponse<Void> logout(@RequestBody @Valid TokenRefreshRequest request) {
+        authService.logout(request);
         return ApiResponse.ok("로그아웃되었습니다.", null);
     }
 
@@ -69,13 +70,5 @@ public class AuthController {
                 isDuplicate ? "이미 사용 중인 이메일입니다." : "사용 가능한 이메일입니다.",
                 Map.of("isDuplicate", isDuplicate)
         );
-    }
-
-    private String extractBearerToken(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            throw ErrorCode.INVALID_REFRESH_TOKEN.toException();
-        }
-        return header.substring(7);
     }
 }
