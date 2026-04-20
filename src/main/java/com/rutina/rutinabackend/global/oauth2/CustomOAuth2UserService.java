@@ -42,15 +42,20 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // provider + providerId 기준으로 기존 회원 조회, 없으면 자동 가입
         User user = userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId())
-                .orElseGet(() -> userRepository.save(
-                        User.createOAuth(
-                                email,
-                                defaultNickname(userInfo, email),
-                                userInfo.getProvider(),
-                                userInfo.getProviderId()
-                        )
-                ));
-
+                .orElseGet(() -> {
+                    // 동일 이메일 계정 존재 시 예외 처리
+                    if (userRepository.existsByEmail(email)) {
+                        throw oauth2Error("An account with the same email already exists");
+                    }
+                    return userRepository.save(
+                            User.createOAuth(
+                                    email,
+                                    defaultNickname(userInfo, email),
+                                    userInfo.getProvider(),
+                                    userInfo.getProviderId()
+                            )
+                    );
+                });
         Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
         attributes.put("userId", user.getId());
 
