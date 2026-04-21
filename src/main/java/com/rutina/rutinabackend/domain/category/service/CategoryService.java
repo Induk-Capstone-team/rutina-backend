@@ -36,13 +36,15 @@ public class CategoryService {
     public CategoryResponse createCategory(Long userId, CategoryCreateRequest request) {
         String categoryName = request.getName().trim();
 
+        //사용자 존재 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_404", "사용자를 찾을 수 없습니다."));
+
         // 같은 사용자 기준 이름 중복 방지
         if (categoryRepository.existsByUser_IdAndName(userId, categoryName)) {
             throw new BusinessException(HttpStatus.CONFLICT, "CATEGORY_409", "이미 같은 이름의 카테고리가 존재합니다.");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_404", "사용자를 찾을 수 없습니다."));
 
         // 기존 카테고리를 전부 뒤로 한 칸씩 밀어서
         // 새 카테고리가 0번 순서로 들어갈 수 있게 함

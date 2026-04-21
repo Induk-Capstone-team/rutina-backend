@@ -70,7 +70,7 @@ public class CategoryController {
     }
 
     @Operation(summary = "카테고리 수정")
-    @PatchMapping("/{categoryId}")
+    @PutMapping("/{categoryId}")
     public ApiResponse<CategoryResponse> updateCategory(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long categoryId,
@@ -85,7 +85,7 @@ public class CategoryController {
     }
 
     @Operation(summary = "카테고리 순서 변경")
-    @PatchMapping("/reorder")
+    @PutMapping("/reorder")
     public ApiResponse<Void> reorderCategories(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CategoryOrderUpdateRequest request
