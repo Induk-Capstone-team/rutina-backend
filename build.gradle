@@ -56,7 +56,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     // ── AI ────────────────────────────────────────────────
-    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 
     // ── 개발 생산성 ────────────────────────────────────────
     compileOnly    'org.projectlombok:lombok'

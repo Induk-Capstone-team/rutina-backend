@@ -14,14 +14,24 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 # 제미나이 사용
-  ai:
-    google:
-      genai:
-        api-key: ${GEMINI_API_KEY}
-        chat:
-          options:
-            model: gemini-2.5-flash
+#  ai:
+#    google:
+#      genai:
+#        api-key: ${OPENAI_API_KEY}
+#        chat:
+#          options:
+#            model: gemini-2.5-flash
 
+# OpenAI 사용
+  ai:
+    model:
+      chat: openai
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
