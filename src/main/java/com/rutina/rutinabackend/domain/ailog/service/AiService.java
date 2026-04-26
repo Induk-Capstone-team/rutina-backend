@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Service
 public class AiService {
     // 나중에 AI 기능이 여러 개로 늘어났을 때, 루틴 추천 로그만 구분하기 위해 사용한다.
@@ -546,11 +549,157 @@ public class AiService {
         }
     }
 
+    /**
+     * 사용자가 체크한 AI 추천 루틴을 실제 routines 테이블에 추가
+     *
+     * 처리 흐름:
+     * 1. 로그인 유저 조회
+     * 2. recommendationId로 AiLog 조회
+     * 3. categoryId 결정
+     *    - 추가 요청의 categoryId 우선 사용
+     *    - 없으면 추천 요청 당시 AiLog.prompt에 저장된 categoryId 사용
+     *    - 둘 다 없으면 예외 발생
+     * 4. AiLog.response에서 AI 추천 루틴 5개 복원
+     * 5. 사용자가 체크한 optionId만 찾아 routines 테이블에 insert
+     */
+    @Transactional
     public AiRoutineAddResponse addRecommendedRoutines(
             UserDetails userDetails,
             Long recommendationId,
             AiRoutineAddRequest request
     ) {
-        throw new UnsupportedOperationException("AI 추천 루틴 추가 기능 구현 전");
+        User user = getLoginUser(userDetails);
+
+        AiLog aiLog = aiLogRepository.findByIdAndUser_Id(recommendationId, user.getId())
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "AI_RECOMMENDATION_NOT_FOUND",
+                        "AI 추천 기록을 찾을 수 없습니다."
+                ));
+
+        Long categoryId = resolveCategoryId(user.getId(), request.categoryId(), aiLog);
+
+        AiRoutineRecommendResult result = fromJson(aiLog.getResponse(), AiRoutineRecommendResult.class);
+
+        Map<Integer, AiRoutineOption> optionMap = result.routines().stream()
+                .collect(Collectors.toMap(AiRoutineOption::optionId, option -> option));
+
+        List<Integer> selectedOptionIds = request.selectedOptionIds().stream()
+                .distinct()
+                .toList();
+
+        if (selectedOptionIds.isEmpty()) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "AI_ROUTINE_SELECTION_REQUIRED",
+                    "추가할 루틴을 최소 1개 이상 선택해야 합니다."
+            );
+        }
+
+        int addedCount = 0;
+
+        for (Integer optionId : selectedOptionIds) {
+            AiRoutineOption option = optionMap.get(optionId);
+
+            if (option == null) {
+                throw new BusinessException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_AI_ROUTINE_OPTION",
+                        "존재하지 않는 추천 루틴입니다."
+                );
+            }
+
+            insertRoutine(user.getId(), categoryId, option.title());
+            addedCount++;
+        }
+
+        return new AiRoutineAddResponse(addedCount);
+    }
+
+    /**
+     * routines insert에 사용할 categoryId 결정
+     *
+     * 우선순위:
+     * 1. 추가 요청 body의 categoryId
+     * 2. 추천 요청 당시 AiLog.prompt에 저장된 categoryId
+     * 3. 둘 다 없으면 예외
+     */
+    private Long resolveCategoryId(Long userId, Long requestCategoryId, AiLog aiLog) {
+        if (requestCategoryId != null) {
+            validateCategoryOwnership(userId, requestCategoryId);
+            return requestCategoryId;
+        }
+
+        AiRoutinePromptLog promptLog = fromJson(aiLog.getPrompt(), AiRoutinePromptLog.class);
+
+        if (promptLog.categoryId() != null) {
+            validateCategoryOwnership(userId, promptLog.categoryId());
+            return promptLog.categoryId();
+        }
+
+        throw new BusinessException(
+                HttpStatus.BAD_REQUEST,
+                "CATEGORY_REQUIRED",
+                "루틴을 추가하려면 카테고리를 선택해야 합니다."
+        );
+    }
+
+    /**
+     * 선택한 카테고리가 현재 로그인한 유저의 카테고리인지 검증
+     */
+    private void validateCategoryOwnership(Long userId, Long categoryId) {
+        Boolean exists = jdbcTemplate.queryForObject(
+                "select exists(select 1 from categories where id = ? and user_id = ?)",
+                Boolean.class,
+                categoryId,
+                userId
+        );
+
+        if (exists == null || !exists) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_CATEGORY",
+                    "본인의 카테고리만 선택할 수 있습니다."
+            );
+        }
+    }
+
+    /**
+     * 선택된 추천 루틴을 routines 테이블에 추가
+     *
+     * 반복은 기본적으로 하지 않으므로 cron_expression은 null로 저장한다.
+     */
+    private void insertRoutine(Long userId, Long categoryId, String title) {
+        jdbcTemplate.update("""
+            insert into routines
+            (user_id, category_id, title, alarm, state, cron_expression, start_time, end_time, created_at, updated_at)
+            values (?, ?, ?, ?, ?, ?, ?, ?, now(), now())
+            """,
+                userId,
+                categoryId,
+                title,
+                false,
+                true,
+                null,
+                null,
+                null
+        );
+    }
+
+    /**
+     * JSON 문자열을 객체로 변환
+     *
+     * AiLog.prompt, AiLog.response를 다시 DTO로 복원할 때 사용한다.
+     */
+    private <T> T fromJson(String json, Class<T> clazz) {
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "JSON_PARSE_FAILED",
+                    "JSON 파싱에 실패했습니다."
+            );
+        }
     }
 }
