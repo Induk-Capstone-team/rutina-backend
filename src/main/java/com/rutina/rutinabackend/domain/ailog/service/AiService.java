@@ -12,7 +12,13 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 @Service
 public class AiService {
     // 나중에 AI 기능이 여러 개로 늘어났을 때, 루틴 추천 로그만 구분하기 위해 사용한다.
@@ -208,8 +214,336 @@ public class AiService {
         }
     }
 
-    public AiRoutineRecommendResponse recommend(UserDetails userDetails, AiRoutineRecommendRequest request) {
-        throw new UnsupportedOperationException("AI 루틴 추천 기능 구현 전");
+    // AI 프롬포트 생성
+    private String buildRecommendPrompt(
+            User user,
+            AiRoutineRecommendRequest request,
+            String categoryName,
+            String format
+    ) {
+        return """
+            아래 정보를 바탕으로 루틴 후보 5개를 추천해라.
+
+            [사용자 정보]
+            직업: %s
+            성별: %s
+            나이대: %s
+
+            [선택한 카테고리]
+            카테고리: %s
+
+            [사용자 선택값]
+            목적: %s
+            주요 활동 시간: %s
+            활동 타입: %s
+            취미: %s
+
+            [생성 규칙]
+            - 루틴은 정확히 5개만 생성한다.
+            - optionId는 1, 2, 3, 4, 5로 생성한다.
+            - title은 30자 이하로 작성한다.
+            - description은 생성하지 않는다.
+            - recommendedTime은 사용자의 주요 활동 시간과 어울리게 작성한다.
+            - durationMinutes는 5, 10, 15, 20, 30 중 하나만 사용한다.
+            - 반복 여부는 만들지 않는다.
+            - 사용자가 바로 추가할 수 있는 구체적인 루틴 제목으로 만든다.
+
+            [응답 형식]
+            %s
+            """.formatted(
+                user.getJob(),
+                convertGender(user.getGender()),
+                String.valueOf(user.getAge()),
+                normalizeBlank(categoryName, "선택 안 함"),
+                request.purpose(),
+                request.mainActivityTime(),
+                normalizeBlank(request.activityType(), "선택 안 함"),
+                String.join(", ", request.hobbies()),
+                format
+        );
+    }
+
+    /**
+     * AI 루틴 추천 생성
+     *
+     * 처리 흐름:
+     * 1. 로그인 유저 조회
+     * 2. 유저 테이블의 직업, 성별, 나이대 검증
+     * 3. 사용자가 선택한 목적, 주요 활동 시간, 활동 타입, 취미 검증
+     * 4. categoryId가 있으면 본인 카테고리인지 확인하고 카테고리명 조회
+     * 5. OpenAI에 전달할 프롬프트 생성
+     * 6. OpenAI 호출
+     * 7. AI 응답을 DTO로 변환
+     * 8. 추천 결과를 5개로 정리
+     * 9. AiLog에 요청 정보와 추천 결과 저장
+     * 10. recommendationId와 루틴 후보 5개 반환
+     */
+
+    @Transactional
+    public AiRoutineRecommendResponse recommend(
+            UserDetails userDetails,
+            AiRoutineRecommendRequest request
+    ) {
+        User user = getLoginUser(userDetails);
+
+        validateUserInfo(user);
+        validateRequestOptions(request);
+
+        String categoryName = null; //협의 전까지 선택값으로 둠.
+
+        // 추천 요청 단계에서 categoryId 들어오면 해당 카테고리가 유저의 카테고리인지 확인, 조회
+        if (request.categoryId() != null) {
+            categoryName = findCategoryName(user.getId(), request.categoryId());
+        }
+
+        /*
+         * AI 응답을 지정한 DTO 형태로 변환하기 위해 사용한다.
+         *
+         * 최종적인 AI 응답 구조
+         *
+         * {
+         *   "routines": [
+         *     {
+         *       "optionId": 1,
+         *       "title": "아침 물 한 잔 마시기",
+         *       "recommendedTime": "아침",
+         *       "durationMinutes": 5
+         *     }
+         *   ]
+         * }
+         */
+
+        BeanOutputConverter<AiRoutineRecommendResult> converter =
+                new BeanOutputConverter<>(AiRoutineRecommendResult.class);
+
+        String prompt = buildRecommendPrompt(
+                user,
+                request,
+                categoryName,
+                converter.getFormat()
+        );
+
+        String aiAnswer = chatClient.prompt()
+                .system("""
+                    너는 루틴 추천 앱 Rutina의 AI 루틴 추천 엔진이다.
+                    사용자의 직업, 성별, 나이대와 선택 조건을 바탕으로 루틴 후보를 추천한다.
+                    설명(description)은 절대 생성하지 않는다.
+                    반복 설정은 생성하지 않는다.
+                    사용자가 실제 앱에 추가할 수 있는 루틴 제목만 추천한다.
+                    """)
+                .user(prompt)
+                .call()
+                .content();
+
+        AiRoutineRecommendResult parsedResult = convertAiResult(converter, aiAnswer);
+        AiRoutineRecommendResult normalizedResult = normalizeResult(parsedResult);
+
+        /*
+         * AiLog.prompt에는 추천 요청 당시의 사용자 정보와 선택 조건 저장
+         * AiLog.response에는 AI 추천 결과 5개 저장
+         */
+
+        AiRoutinePromptLog promptLog = createPromptLog(user, request, categoryName);
+
+        AiLog aiLog = AiLog.create(
+                user,
+                null,
+                REQUEST_TYPE_ROUTINE_RECOMMEND,
+                toJson(promptLog),
+                toJson(normalizedResult)
+        );
+
+        aiLogRepository.save(aiLog);
+
+        return new AiRoutineRecommendResponse(
+                aiLog.getId(),
+                request.categoryId(),
+                normalizedResult.routines()
+        );
+    }
+
+    /**
+     * AI 추천 결과 정리
+     *
+     * 보정 내용:
+     * - 추천 결과가 5개 미만이면 예외
+     * - 5개보다 많으면 앞에서 5개만 사용
+     * - optionId는 서버에서 1~5로 다시 부여
+     * - title은 30자 제한
+     * - recommendedTime이 비어 있으면 "미정"
+     * - durationMinutes가 허용 목록에 없으면 10분
+     */
+
+    private AiRoutineRecommendResult normalizeResult(AiRoutineRecommendResult result) {
+        List<AiRoutineOption> routines = result.routines();
+
+        if (routines == null || routines.size() < 5) {
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "AI_RESPONSE_COUNT_INVALID",
+                    "AI 추천 결과는 5개여야 합니다."
+            );
+        }
+
+        List<AiRoutineOption> normalized = new ArrayList<>();
+
+        for (int i = 0; i < 5; i++) {
+            AiRoutineOption option = routines.get(i);
+            String title = normalizeTitle(option.title());
+
+            if (title.isBlank()) {
+                throw new BusinessException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "AI_RESPONSE_TITLE_INVALID",
+                        "AI 추천 루틴 제목이 올바르지 않습니다."
+                );
+            }
+
+            normalized.add(new AiRoutineOption(
+                    i + 1,
+                    title,
+                    normalizeBlank(option.recommendedTime(), "미정"),
+                    normalizeDuration(option.durationMinutes())
+            ));
+        }
+
+        return new AiRoutineRecommendResult(normalized);
+    }
+
+    // AiLog.prompt에 저장할 추천 요청 정보 생성
+    private AiRoutinePromptLog createPromptLog(
+            User user,
+            AiRoutineRecommendRequest request,
+            String categoryName
+    ) {
+        return new AiRoutinePromptLog(
+                user.getId(),
+                user.getJob(),
+                convertGender(user.getGender()),
+                String.valueOf(user.getAge()),
+                request.categoryId(),
+                categoryName,
+                request.purpose(),
+                request.mainActivityTime(),
+                normalizeBlank(request.activityType(), "선택 안 함"),
+                request.hobbies()
+        );
+    }
+
+    // categoryId로 카테고리명 조회
+    private String findCategoryName(Long userId, Long categoryId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    "select name from categories where id = ? and user_id = ?",
+                    String.class,
+                    categoryId,
+                    userId
+            );
+        } catch (EmptyResultDataAccessException e) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_CATEGORY",
+                    "본인의 카테고리만 선택할 수 있습니다."
+            );
+        }
+    }
+
+    // 성별 값 문자열 변환
+    // gender가 숫자인 경우: 0 → 남성 / 1 → 여성 / 2 → 기타
+
+    private String convertGender(Object gender) {
+        if (gender == null) {
+            return "미입력";
+        }
+
+        if (gender instanceof Number number) {
+            return switch (number.intValue()) {
+                case 0 -> "남성";
+                case 1 -> "여성";
+                case 2 -> "기타";
+                default -> "미입력";
+            };
+        }
+
+        String value = gender.toString().trim();
+
+        if (value.isBlank()) {
+            return "미입력";
+        }
+
+        return value;
+    }
+
+    // 루틴 제목 길이 제한 정리
+    private String normalizeTitle(String title) {
+        if (title == null) {
+            return "";
+        }
+
+        String normalized = title.trim();
+
+        if (normalized.length() > 30) {
+            return normalized.substring(0, 30);
+        }
+
+        return normalized;
+    }
+
+    // null 또는 빈 문자열이면 기본값으로 대체
+    private String normalizeBlank(String value, String defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+
+        return value.trim();
+    }
+
+    // 추천 소요 시간 정리: AI가 이상한 값 내려 주면 그 값 보정
+    private Integer normalizeDuration(Integer durationMinutes) {
+        if (durationMinutes == null) {
+            return 10;
+        }
+
+        if (!ALLOWED_DURATIONS.contains(durationMinutes)) {
+            return 10;
+        }
+
+        return durationMinutes;
+    }
+    // AI 응답 문자열을 AiRoutineRecommendResult DTO로 변환
+    private AiRoutineRecommendResult convertAiResult(
+            BeanOutputConverter<AiRoutineRecommendResult> converter,
+            String aiAnswer
+    ) {
+        try {
+            AiRoutineRecommendResult result = converter.convert(aiAnswer);
+
+            if (result == null || result.routines() == null) {
+                throw new IllegalStateException("AI 응답이 비어 있습니다.");
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "AI_RESPONSE_PARSE_FAILED",
+                    "AI 추천 결과 변환에 실패했습니다."
+            );
+        }
+    }
+
+    // 객체를 JSON 문자열로 변환
+    // AiLog.prompt, AiLog.response 저장 시 사용
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "JSON_CONVERT_FAILED",
+                    "JSON 변환에 실패했습니다."
+            );
+        }
     }
 
     public AiRoutineAddResponse addRecommendedRoutines(
