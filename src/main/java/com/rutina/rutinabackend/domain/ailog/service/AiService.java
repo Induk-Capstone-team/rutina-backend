@@ -18,6 +18,7 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AiService {
