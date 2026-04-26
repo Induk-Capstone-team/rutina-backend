@@ -17,10 +17,7 @@ import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 public class AiService {
@@ -217,11 +214,35 @@ public class AiService {
         }
     }
 
+    // 사용자의 기존 루틴 제목 목록 조회
+    private List<String> findExistingRoutineTitles(Long userId) {
+        return jdbcTemplate.query(
+                """
+                select title
+                  from routines
+                 where user_id = ?
+                 order by created_at desc
+                """,
+                (rs, rowNum) -> rs.getString("title"),
+                userId
+        );
+    }
+
+    // 기존 루틴 목록을 AI 프롬프트에 넣기 좋은 형태로 변환
+    private String formatExistingRoutines(List<String> existingRoutineTitles) {
+        if (existingRoutineTitles == null || existingRoutineTitles.isEmpty()) {
+            return "기존 루틴 없음";
+        }
+
+        return String.join(", ", existingRoutineTitles);
+    }
+
     // AI 프롬포트 생성
     private String buildRecommendPrompt(
             User user,
             AiRoutineRecommendRequest request,
             String categoryName,
+            List<String> existingRoutineTitles,
             String format
     ) {
         return """
@@ -241,6 +262,9 @@ public class AiService {
             활동 타입: %s
             취미: %s
 
+            [사용자의 기존 루틴 목록]
+            %s
+            
             [생성 규칙]
             - 루틴은 정확히 5개만 생성한다.
             - optionId는 1, 2, 3, 4, 5로 생성한다.
@@ -250,6 +274,11 @@ public class AiService {
             - durationMinutes는 5, 10, 15, 20, 30 중 하나만 사용한다.
             - 반복 여부는 만들지 않는다.
             - 사용자가 바로 추가할 수 있는 구체적인 루틴 제목으로 만든다.
+            - 기존 루틴과 제목이 같거나 의미가 거의 같은 루틴은 추천하지 않는다.
+            - 기존 루틴을 반복 추천하지 말고, 기존 루틴을 보완할 수 있는 루틴을 추천한다.
+            - 기존 루틴에 운동이 많으면 회복, 식단, 수면 같은 보완 루틴을 추천한다.
+            - 기존 루틴에 공부가 많으면 휴식, 정리, 복습, 집중 준비 루틴을 추천한다.
+            - 기존 루틴에 생활 관리가 많으면 꾸준함을 높이는 짧은 루틴을 추천한다.
 
             [응답 형식]
             %s
@@ -262,6 +291,7 @@ public class AiService {
                 request.mainActivityTime(),
                 normalizeBlank(request.activityType(), "선택 안 함"),
                 String.join(", ", request.hobbies()),
+                formatExistingRoutines(existingRoutineTitles),
                 format
         );
     }
@@ -293,6 +323,7 @@ public class AiService {
         validateRequestOptions(request);
 
         String categoryName = null; //협의 전까지 선택값으로 둠.
+        List<String> existingRoutineTitles = findExistingRoutineTitles(user.getId());
 
         // 추천 요청 단계에서 categoryId 들어오면 해당 카테고리가 유저의 카테고리인지 확인, 조회
         if (request.categoryId() != null) {
@@ -323,6 +354,7 @@ public class AiService {
                 user,
                 request,
                 categoryName,
+                existingRoutineTitles,
                 converter.getFormat()
         );
 
@@ -339,7 +371,7 @@ public class AiService {
                 .content();
 
         AiRoutineRecommendResult parsedResult = convertAiResult(converter, aiAnswer);
-        AiRoutineRecommendResult normalizedResult = normalizeResult(parsedResult);
+        AiRoutineRecommendResult normalizedResult = normalizeResult(parsedResult, existingRoutineTitles);
 
         /*
          * AiLog.prompt에는 추천 요청 당시의 사용자 정보와 선택 조건 저장
@@ -377,7 +409,10 @@ public class AiService {
      * - durationMinutes가 허용 목록에 없으면 10분
      */
 
-    private AiRoutineRecommendResult normalizeResult(AiRoutineRecommendResult result) {
+    private AiRoutineRecommendResult normalizeResult(
+            AiRoutineRecommendResult result,
+            List<String> existingRoutineTitles
+    ) {
         List<AiRoutineOption> routines = result.routines();
 
         if (routines == null || routines.size() < 5) {
@@ -389,28 +424,72 @@ public class AiService {
         }
 
         List<AiRoutineOption> normalized = new ArrayList<>();
+        List<String> usedTitles = new ArrayList<>();
 
-        for (int i = 0; i < 5; i++) {
-            AiRoutineOption option = routines.get(i);
+        for (AiRoutineOption option : routines) {
             String title = normalizeTitle(option.title());
 
             if (title.isBlank()) {
-                throw new BusinessException(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "AI_RESPONSE_TITLE_INVALID",
-                        "AI 추천 루틴 제목이 올바르지 않습니다."
-                );
+                continue;
+            }
+
+            if (isDuplicateTitle(title, existingRoutineTitles)) {
+                continue;
+            }
+
+            if (isDuplicateTitle(title, usedTitles)) {
+                continue;
             }
 
             normalized.add(new AiRoutineOption(
-                    i + 1,
+                    normalized.size() + 1,
                     title,
                     normalizeBlank(option.recommendedTime(), "미정"),
                     normalizeDuration(option.durationMinutes())
             ));
+
+            usedTitles.add(title);
+
+            if (normalized.size() == 5) {
+                break;
+            }
+        }
+
+        if (normalized.size() < 5) {
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "AI_RESPONSE_UNIQUE_COUNT_INVALID",
+                    "기존 루틴과 겹치지 않는 추천 결과가 5개 미만입니다. 다시 추천을 요청해주세요."
+            );
         }
 
         return new AiRoutineRecommendResult(normalized);
+    }
+
+    // 기존 루틴 또는 추천 목록 내부에서 제목이 겹치는지 검사
+    private boolean isDuplicateTitle(String title, List<String> titles) {
+        if (title == null || titles == null || titles.isEmpty()) {
+            return false;
+        }
+
+        String normalizedTitle = normalizeForCompare(title);
+
+        return titles.stream()
+                .filter(Objects::nonNull)
+                .map(this::normalizeForCompare)
+                .anyMatch(existingTitle -> existingTitle.equals(normalizedTitle));
+    }
+
+    // 제목 비교용 정규화
+    private String normalizeForCompare(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replaceAll("\\s+", "")
+                .replaceAll("[^가-힣a-zA-Z0-9]", "")
+                .toLowerCase();
     }
 
     // AiLog.prompt에 저장할 추천 요청 정보 생성
@@ -609,8 +688,10 @@ public class AiService {
                 );
             }
 
-            insertRoutine(user.getId(), categoryId, option.title());
-            addedCount++;
+            if (!existsRoutineTitle(user.getId(), option.title())) {
+                insertRoutine(user.getId(), categoryId, option.title());
+                addedCount++;
+            }
         }
 
         return new AiRoutineAddResponse(addedCount);
@@ -644,9 +725,27 @@ public class AiService {
         );
     }
 
-    /**
-     * 선택한 카테고리가 현재 로그인한 유저의 카테고리인지 검증
-     */
+    // 사용자의 기존 루틴에 같은 제목이 있는지 확인
+    private boolean existsRoutineTitle(Long userId, String title) {
+        Boolean exists = jdbcTemplate.queryForObject(
+                """
+                select exists(
+                    select 1
+                      from routines
+                     where user_id = ?
+                       and regexp_replace(lower(title), '[^가-힣a-z0-9]', '', 'g')
+                           = regexp_replace(lower(?), '[^가-힣a-z0-9]', '', 'g')
+                )
+                """,
+                Boolean.class,
+                userId,
+                title
+        );
+
+        return exists != null && exists;
+    }
+
+    // 선택한 카테고리가 현재 로그인한 유저의 카테고리인지 검증
     private void validateCategoryOwnership(Long userId, Long categoryId) {
         Boolean exists = jdbcTemplate.queryForObject(
                 "select exists(select 1 from categories where id = ? and user_id = ?)",
@@ -664,11 +763,7 @@ public class AiService {
         }
     }
 
-    /**
-     * 선택된 추천 루틴을 routines 테이블에 추가
-     *
-     * 반복은 기본적으로 하지 않으므로 cron_expression은 null로 저장한다.
-     */
+    // 선택된 추천 루틴을 routines 테이블에 추가
     private void insertRoutine(Long userId, Long categoryId, String title) {
         jdbcTemplate.update("""
             insert into routines
