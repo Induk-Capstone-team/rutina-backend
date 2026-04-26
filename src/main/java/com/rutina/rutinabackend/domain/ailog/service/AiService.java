@@ -68,7 +68,7 @@ public class AiService {
     );
 
     // AI가 추천할 수 있는 루틴 소요 시간 목록
-    private static final List<Integer> ALLOWED_DURATIONS = List.of(5, 10, 15, 20, 30);
+    private static final List<Integer> ALLOWED_DURATIONS = List.of(10, 20, 30, 40, 50, 60);
 
     // 의존성 주입 필드
 
@@ -271,7 +271,8 @@ public class AiService {
             - title은 30자 이하로 작성한다.
             - description은 생성하지 않는다.
             - recommendedTime은 사용자의 주요 활동 시간과 어울리게 작성한다.
-            - durationMinutes는 5, 10, 15, 20, 30 중 하나만 사용한다.
+            - durationMinutes는 10, 20, 30, 40, 50, 60 중 하나만 사용한다.
+            - durationMinutes는 루틴 수행 시간이며 최대 60분을 넘기지 않는다.
             - 반복 여부는 만들지 않는다.
             - 사용자가 바로 추가할 수 있는 구체적인 루틴 제목으로 만든다.
             - 기존 루틴과 제목이 같거나 의미가 거의 같은 루틴은 추천하지 않는다.
@@ -767,14 +768,26 @@ public class AiService {
     private void insertRoutine(Long userId, Long categoryId, String title) {
         jdbcTemplate.update("""
             insert into routines
-            (user_id, category_id, title, alarm, state, cron_expression, start_time, end_time, created_at, updated_at)
-            values (?, ?, ?, ?, ?, ?, ?, ?, now(), now())
+            (
+                user_id,
+                category_id,
+                title,
+                alarm,
+                repeat_type,
+                repeat_interval,
+                repeat_unit,
+                repeat_days,
+                start_at,
+                created_at,
+                updated_at
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, current_date, now(), now())
             """,
                 userId,
                 categoryId,
                 title,
                 false,
-                true,
+                "NONE",
                 null,
                 null,
                 null
