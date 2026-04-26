@@ -18,10 +18,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/ai-routines")
 @RequiredArgsConstructor
+@Tag(name = "AI Routine", description = "AI 루틴 추천 API")
 public class AiController {
 
     // 루틴 추천 조건 선택지 조회 API
     private final AiService aiService;
+
+    @Operation(summary = "AI 루틴 추천 조건 선택지 조회")
     @GetMapping("/options")
     public ApiResponse<AiRoutineOptionValuesResponse> getOptions() {
         return ApiResponse.ok(
@@ -31,6 +34,7 @@ public class AiController {
     }
 
     // AI 루틴 추천 생성 API
+    @Operation(summary = "AI 루틴 추천 생성")
     @PostMapping("/recommend")
     public ApiResponse<AiRoutineRecommendResponse> recommend(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -43,6 +47,7 @@ public class AiController {
     }
 
     // AI 추천 루틴 중 사용자가 선택한 루틴만 추가하는 API
+    @Operation(summary = "선택한 AI 추천 루틴 추가")
     @PostMapping("/{recommendationId}/add")
     public ApiResponse<AiRoutineAddResponse> addRecommendedRoutines(
             @AuthenticationPrincipal UserDetails userDetails,
