@@ -30,7 +30,8 @@ public class NaverUserInfo implements OAuth2UserInfo {
 
     @Override
     public String getNickname() {
-        Object name = response == null ? null : response.get("name");
-        return name == null ? null : String.valueOf(name);
+        Object nickname = response == null ? null : response.get("nickname");
+        return nickname == null ? null : String.valueOf(nickname);
     }
+
 }
