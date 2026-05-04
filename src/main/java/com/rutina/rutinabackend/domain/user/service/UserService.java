@@ -1,0 +1,32 @@
+package com.rutina.rutinabackend.domain.user.service;
+
+import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
+import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
+import com.rutina.rutinabackend.domain.user.entity.User;
+import com.rutina.rutinabackend.domain.user.repository.UserRepository;
+import com.rutina.rutinabackend.global.exception.ErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class UserService {
+
+    private final UserRepository userRepository;
+
+    @Transactional
+    public NicknameUpdateResponse updateNickname(Long userId, NicknameUpdateRequest request) {
+        // 로그인한 사용자의 id로 User를 조회합니다.
+        // 존재하지 않는 사용자라면 공통 에러 코드로 예외를 발생시킵니다.
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+
+        // 닉네임 중복은 허용하기 때문에 별도의 중복 검사는 하지 않습니다.
+        // JPA 변경 감지로 트랜잭션이 끝날 때 update 쿼리가 실행됩니다.
+        user.updateNickname(request.nickname());
+
+        // 변경된 닉네임을 바로 응답으로 내려주기 위해 응답 DTO로 변환합니다.
+        return NicknameUpdateResponse.from(user);
+    }
+}
