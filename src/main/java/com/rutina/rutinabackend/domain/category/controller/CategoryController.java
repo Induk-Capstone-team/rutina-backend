@@ -43,16 +43,58 @@ public class CategoryController {
         return ApiResponse.created("카테고리가 생성되었습니다.", response);
     }
 
-    @Operation(summary = "내 카테고리 목록 조회")
+    @Operation(
+            summary = "내 카테고리 목록 조회",
+            description = """
+                로그인한 사용자의 카테고리 목록을 조회합니다.
+                숨김 처리되지 않은 카테고리(hidden=false)만 반환합니다.
+                앱의 기본 카테고리 목록 화면에서 사용합니다.
+                """
+    )
     @GetMapping
     public ApiResponse<List<CategoryResponse>> getCategories(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        // accessToken 인증 사용자 기준으로 본인 카테고리만 조회
         Long userId = Long.parseLong(userDetails.getUsername());
 
         List<CategoryResponse> response = categoryService.getCategories(userId);
         return ApiResponse.ok("카테고리 목록 조회에 성공했습니다.", response);
+    }
+
+    @Operation(
+            summary = "숨김 카테고리 목록 조회",
+            description = """
+                로그인한 사용자의 숨김 카테고리 목록을 조회합니다.
+                hidden=true 상태인 카테고리만 반환합니다.
+                숨김 카테고리를 다시 표시 상태로 변경할 때 사용할 수 있습니다.
+                """
+    )
+    @GetMapping("/hidden")
+    public ApiResponse<List<CategoryResponse>> getHiddenCategories(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        List<CategoryResponse> response = categoryService.getHiddenCategories(userId);
+        return ApiResponse.ok("숨김 카테고리 목록 조회에 성공했습니다.", response);
+    }
+
+    @Operation(
+            summary = "내 카테고리 전체 조회",
+            description = """
+                로그인한 사용자의 모든 카테고리를 조회합니다.
+                숨김 여부와 관계없이 hidden=true, hidden=false 카테고리를 모두 반환합니다.
+                관리자성 확인 또는 카테고리 관리 화면에서 사용할 수 있습니다.
+                """
+    )
+    @GetMapping("/all")
+    public ApiResponse<List<CategoryResponse>> getAllCategories(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        List<CategoryResponse> response = categoryService.getAllCategories(userId);
+        return ApiResponse.ok("전체 카테고리 목록 조회에 성공했습니다.", response);
     }
 
     @Operation(summary = "카테고리 단건 조회")

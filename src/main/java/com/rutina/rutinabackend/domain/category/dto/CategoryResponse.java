@@ -32,6 +32,7 @@ public class CategoryResponse {
                 .colorCode(category.getColorCode())
                 .rtSum(category.getRtSum())
                 .sortOrder(category.getSortOrder())
+                .hidden(category.getHidden())
                 .build();
     }
 }
