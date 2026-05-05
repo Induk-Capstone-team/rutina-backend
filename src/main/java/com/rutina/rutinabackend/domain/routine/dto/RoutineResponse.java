@@ -28,10 +28,9 @@ public class RoutineResponse {
     private LocalTime endTime;
     private LocalDate startAt;
     private LocalDate endAt;
+    private Boolean isCompleted;        // date 없는 조회 시 null, date 있는 조회 시 true/false
 
-    // 엔티티 → 응답 DTO 변환 정적 팩토리
-    // repeatDays: routine.getRepeatDays()가 null이면 빈 리스트,
-    //             아니면 쉼표로 split 후 DayOfWeek::valueOf로 매핑
+    // 엔티티 → 응답 DTO 변환 정적 팩토리 (date 없는 조회용 - isCompleted = null)
     public static RoutineResponse from(Routine routine) {
         List<DayOfWeek> repeatDays = routine.getRepeatDays() == null
                 ? Collections.emptyList()
@@ -53,6 +52,32 @@ public class RoutineResponse {
                 .endTime(routine.getEndTime())
                 .startAt(routine.getStartAt())
                 .endAt(routine.getEndAt())
+                .build();
+    }
+
+    // 엔티티 → 응답 DTO 변환 정적 팩토리 (date 있는 조회용 - isCompleted 값 포함)
+    public static RoutineResponse from(Routine routine, boolean isCompleted) {
+        List<DayOfWeek> repeatDays = routine.getRepeatDays() == null
+                ? Collections.emptyList()
+                : Arrays.stream(routine.getRepeatDays().split(","))
+                        .map(DayOfWeek::valueOf)
+                        .collect(Collectors.toList());
+
+        return RoutineResponse.builder()
+                .id(routine.getId())
+                .categoryId(routine.getCategory().getId())
+                .categoryColorCode(routine.getCategory() != null ? routine.getCategory().getColorCode() : null)
+                .title(routine.getTitle())
+                .alarm(routine.getAlarm())
+                .repeatType(routine.getRepeatType())
+                .repeatInterval(routine.getRepeatInterval())
+                .repeatUnit(routine.getRepeatUnit())
+                .repeatDays(repeatDays)
+                .startTime(routine.getStartTime())
+                .endTime(routine.getEndTime())
+                .startAt(routine.getStartAt())
+                .endAt(routine.getEndAt())
+                .isCompleted(isCompleted)
                 .build();
     }
 }

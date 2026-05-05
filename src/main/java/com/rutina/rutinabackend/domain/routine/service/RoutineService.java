@@ -2,6 +2,8 @@ package com.rutina.rutinabackend.domain.routine.service;
 
 import com.rutina.rutinabackend.domain.category.entity.Category;
 import com.rutina.rutinabackend.domain.category.repository.CategoryRepository;
+import com.rutina.rutinabackend.domain.dailytarget.entity.DailyTarget;
+import com.rutina.rutinabackend.domain.dailytarget.repository.DailyTargetRepository;
 import com.rutina.rutinabackend.domain.routine.dto.*;
 import com.rutina.rutinabackend.domain.routine.entity.Routine;
 import com.rutina.rutinabackend.domain.routine.repository.RoutineRepository;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,6 +34,7 @@ public class RoutineService {
     private final RoutineRepository routineRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final DailyTargetRepository dailyTargetRepository;
 
     // ── 루틴 생성 ─────────────────────────────────────────────────
     @Transactional
@@ -87,6 +91,7 @@ public class RoutineService {
     // date가 있으면 2단계 필터링:
     //   1단계: DB 쿼리로 유효 기간(start_at <= date <= end_at) 내 루틴 추출
     //   2단계: isActiveOnDate()로 repeat_type별 날짜 계산 필터링
+    // date가 있으면 DailyTarget 일괄 조회 후 isCompleted 포함 응답 (N+1 방지)
     public List<RoutineResponse> getRoutines(Long userId, Long categoryId, LocalDate date) {
         List<Routine> routines;
 
@@ -106,8 +111,20 @@ public class RoutineService {
                     .collect(Collectors.toList());
         }
 
+        if (date == null) {
+            return routines.stream()
+                    .map(RoutineResponse::from)
+                    .collect(Collectors.toList());
+        }
+
+        List<Long> routineIds = routines.stream().map(Routine::getId).collect(Collectors.toList());
+        Map<Long, Boolean> completedMap = dailyTargetRepository
+                .findByRoutineIdInAndTargetDate(routineIds, date)
+                .stream()
+                .collect(Collectors.toMap(dt -> dt.getRoutine().getId(), DailyTarget::getIsCompleted));
+
         return routines.stream()
-                .map(RoutineResponse::from)
+                .map(r -> RoutineResponse.from(r, completedMap.getOrDefault(r.getId(), false)))
                 .collect(Collectors.toList());
     }
 
