@@ -85,4 +85,9 @@ public class User {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    public void changePassword(String encodedNewPassword) {
+        this.password = encodedNewPassword;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
 }
