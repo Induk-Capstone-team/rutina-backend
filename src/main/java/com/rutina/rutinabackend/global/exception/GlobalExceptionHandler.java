@@ -15,8 +15,13 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
+    public ResponseEntity<?> handleBusinessException(BusinessException e) {
         log.warn("BusinessException: {}", e.getMessage());
+        if (e.getData() != null) {
+            return ResponseEntity
+                    .status(e.getStatus())
+                    .body(ApiResponse.fail(e.getCode(), e.getMessage(), e.getData()));
+        }
         return ResponseEntity
                 .status(e.getStatus())
                 .body(ApiResponse.fail(e.getCode(), e.getMessage()));
