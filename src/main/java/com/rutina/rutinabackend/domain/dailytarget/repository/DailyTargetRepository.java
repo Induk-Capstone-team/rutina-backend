@@ -6,9 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DailyTargetRepository extends JpaRepository<DailyTarget, Long> {
     List<DailyTarget> findByRoutineId(Long routineId);
-    List<DailyTarget> findByRoutineIdAndTargetDate(Long routineId, LocalDate targetDate);
+    Optional<DailyTarget> findByRoutineIdAndTargetDate(Long routineId, LocalDate targetDate);
+    List<DailyTarget> findByRoutineIdInAndTargetDate(List<Long> routineIds, LocalDate targetDate);
 }
