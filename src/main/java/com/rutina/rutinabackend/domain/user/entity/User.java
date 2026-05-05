@@ -78,4 +78,11 @@ public class User {
         return user;
     }
 
+    public void updateNickname(String nickname) {
+        // 엔티티 내부에서 닉네임을 변경하도록 메서드로 분리했습니다.
+        // 이렇게 하면 서비스에서 필드를 직접 수정하지 않아도 됩니다.
+        this.nickname = nickname;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
 }
