@@ -16,8 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,14 +54,25 @@ public class RoutineService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "ROUTINE_400", "종료일은 시작일 이후여야 합니다.");
         }
 
-        // startTime/endTime 둘 다 있을 때만 겹침 검증
-        if (request.getStartTime() != null) {
-            validateTimeOverlap(userId, request.getStartAt(),
-                    request.getStartTime(), request.getEndTime(), null);
-        }
-
         // WEEKLY 또는 CUSTOM+WEEK일 때만 문자열 변환, 나머지는 null 저장
         String repeatDays = toRepeatDaysString(request.getRepeatType(), request.getRepeatUnit(), request.getRepeatDays());
+
+        // startTime/endTime 둘 다 있을 때만 겹침 검증
+        if (request.getStartTime() != null) {
+            List<Routine> conflicting = findOverlappingRoutines(
+                    userId,
+                    request.getRepeatType(), request.getRepeatInterval(),
+                    request.getRepeatUnit(), repeatDays,
+                    request.getStartAt(), request.getEndAt(),
+                    request.getStartTime(), request.getEndTime(), null);
+            if (!conflicting.isEmpty()) {
+                List<RoutineConflictResponse> conflicts = conflicting.stream()
+                        .map(RoutineConflictResponse::from)
+                        .toList();
+                throw new BusinessException(HttpStatus.CONFLICT, "ROUTINE_409",
+                        "해당 시간에 이미 다른 루틴이 있습니다.", conflicts);
+            }
+        }
 
         Routine routine = Routine.create(
                 user, category, request.getTitle(), request.getAlarm(),
@@ -134,12 +148,23 @@ public class RoutineService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "ROUTINE_400", "종료일은 시작일 이후여야 합니다.");
         }
 
-        if (request.getStartTime() != null) {
-            validateTimeOverlap(userId, request.getStartAt(),
-                    request.getStartTime(), request.getEndTime(), routineId);
-        }
-
         String repeatDays = toRepeatDaysString(request.getRepeatType(), request.getRepeatUnit(), request.getRepeatDays());
+
+        if (request.getStartTime() != null) {
+            List<Routine> conflicting = findOverlappingRoutines(
+                    userId,
+                    request.getRepeatType(), request.getRepeatInterval(),
+                    request.getRepeatUnit(), repeatDays,
+                    request.getStartAt(), request.getEndAt(),
+                    request.getStartTime(), request.getEndTime(), routineId);
+            if (!conflicting.isEmpty()) {
+                List<RoutineConflictResponse> conflicts = conflicting.stream()
+                        .map(RoutineConflictResponse::from)
+                        .toList();
+                throw new BusinessException(HttpStatus.CONFLICT, "ROUTINE_409",
+                        "해당 시간에 이미 다른 루틴이 있습니다.", conflicts);
+            }
+        }
 
         routine.update(
                 category, request.getTitle(), request.getAlarm(),
@@ -157,24 +182,102 @@ public class RoutineService {
         routineRepository.delete(routine);
     }
 
-    // ── 시간 겹침 검증 ─────────────────────────────────────────────
-    // startTime, endTime이 있는 루틴 생성/수정 시 호출
-    // 같은 날짜에 활성화되는 루틴들과 시간이 겹치면 ROUTINE_409 예외
+    // ── 시간 겹침 검사 ─────────────────────────────────────────────
+    // 새 루틴의 반복 패턴을 고려해 startAt ~ rangeEnd 기간 전체를 순회하며
+    // 기존 루틴과 날짜/시간이 모두 겹치는 루틴 목록을 반환
     // 끝점이 맞닿는 경우(07:00~08:00 / 08:00~09:00)는 허용
     // excludeRoutineId: 수정 시 본인 루틴 제외용 (생성 시 null 전달)
-    private void validateTimeOverlap(Long userId, LocalDate startAt,
-                                     LocalTime startTime, LocalTime endTime,
-                                     Long excludeRoutineId) {
-        boolean overlap = routineRepository.findActiveByUserIdAndDate(userId, startAt)
-                .stream()
-                .filter(r -> isActiveOnDate(r, startAt))
+    private List<Routine> findOverlappingRoutines(
+            Long userId,
+            RepeatType newRepeatType,
+            Integer newRepeatInterval,
+            RepeatUnit newRepeatUnit,
+            String newRepeatDays,
+            LocalDate newStartAt,
+            LocalDate newEndAt,
+            LocalTime newStartTime,
+            LocalTime newEndTime,
+            Long excludeRoutineId) {
+
+        // 후보 루틴: 해당 유저의 시간이 있는 루틴 (자기 자신 제외)
+        List<Routine> candidates = routineRepository.findByUserId(userId).stream()
                 .filter(r -> r.getStartTime() != null)
                 .filter(r -> excludeRoutineId == null || !r.getId().equals(excludeRoutineId))
-                .anyMatch(r -> startTime.isBefore(r.getEndTime()) && endTime.isAfter(r.getStartTime()));
+                .collect(Collectors.toList());
 
-        if (overlap) {
-            throw new BusinessException(HttpStatus.CONFLICT, "ROUTINE_409", "해당 시간에 이미 다른 루틴이 있습니다.");
+        if (candidates.isEmpty()) {
+            return List.of();
         }
+
+        // NONE 타입은 startAt 하루만 검사
+        LocalDate rangeEnd = (newRepeatType == RepeatType.NONE)
+                ? newStartAt
+                : (newEndAt != null ? newEndAt : newStartAt.plusDays(365));
+
+        Set<Long> seenIds = new LinkedHashSet<>();
+        List<Routine> conflicts = new ArrayList<>();
+
+        for (LocalDate date = newStartAt; !date.isAfter(rangeEnd); date = date.plusDays(1)) {
+            if (!isNewRoutineActiveOnDate(newRepeatType, newRepeatInterval, newRepeatUnit,
+                    newRepeatDays, newStartAt, date)) {
+                continue;
+            }
+            final LocalDate checkDate = date;
+            candidates.stream()
+                    .filter(r -> isRoutineEffectiveOnDate(r, checkDate))
+                    .filter(r -> isActiveOnDate(r, checkDate))
+                    .filter(r -> newStartTime.isBefore(r.getEndTime()) && newEndTime.isAfter(r.getStartTime()))
+                    .forEach(r -> {
+                        if (seenIds.add(r.getId())) {
+                            conflicts.add(r);
+                        }
+                    });
+        }
+
+        return conflicts;
+    }
+
+    // ── 루틴의 유효 기간(startAt~endAt) 내에 date가 포함되는지 확인 ──
+    private boolean isRoutineEffectiveOnDate(Routine routine, LocalDate date) {
+        return !date.isBefore(routine.getStartAt())
+                && (routine.getEndAt() == null || !date.isAfter(routine.getEndAt()));
+    }
+
+    // ── 새로 추가할 루틴(미저장)이 주어진 날짜에 활성화되는지 확인 ──
+    private boolean isNewRoutineActiveOnDate(RepeatType type, Integer interval, RepeatUnit unit,
+                                              String repeatDays, LocalDate startAt, LocalDate date) {
+        return switch (type) {
+            case NONE -> date.equals(startAt);
+            case DAILY -> true;
+            case WEEKLY -> repeatDaysStringContainsDate(repeatDays, date);
+            case WEEKDAYS -> isWeekday(date);
+            case MONTHLY -> date.getDayOfMonth() == startAt.getDayOfMonth();
+            case YEARLY -> date.getMonthValue() == startAt.getMonthValue()
+                    && date.getDayOfMonth() == startAt.getDayOfMonth();
+            case CUSTOM -> isNewRoutineCustomActiveOnDate(startAt, interval, unit, repeatDays, date);
+        };
+    }
+
+    // ── CUSTOM 타입 신규 루틴 활성 여부 계산 ──────────────────────
+    private boolean isNewRoutineCustomActiveOnDate(LocalDate startAt, int interval, RepeatUnit unit,
+                                                    String repeatDays, LocalDate date) {
+        return switch (unit) {
+            case DAY -> ChronoUnit.DAYS.between(startAt, date) % interval == 0;
+            case WEEK -> ChronoUnit.WEEKS.between(startAt, date) % interval == 0
+                    && repeatDaysStringContainsDate(repeatDays, date);
+            case MONTH -> ChronoUnit.MONTHS.between(startAt, date) % interval == 0
+                    && date.getDayOfMonth() == startAt.getDayOfMonth();
+            case YEAR -> ChronoUnit.YEARS.between(startAt, date) % interval == 0
+                    && date.getMonthValue() == startAt.getMonthValue()
+                    && date.getDayOfMonth() == startAt.getDayOfMonth();
+        };
+    }
+
+    // ── repeatDays 문자열에 date의 요일이 포함되는지 확인 ─────────
+    private boolean repeatDaysStringContainsDate(String repeatDays, LocalDate date) {
+        if (repeatDays == null) return false;
+        String dayAbbr = date.getDayOfWeek().name().substring(0, 3);
+        return List.of(repeatDays.split(",")).contains(dayAbbr);
     }
 
     // ── repeat_type별 필수값 검증 ──────────────────────────────────
@@ -192,6 +295,9 @@ public class RoutineService {
         if (type == RepeatType.CUSTOM) {
             if (interval == null) {
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "ROUTINE_400", "CUSTOM 반복에는 반복 간격이 필요합니다.");
+            }
+            if (interval <= 0) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "ROUTINE_400", "반복 간격은 1 이상이어야 합니다.");
             }
             if (unit == null) {
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "ROUTINE_400", "CUSTOM 반복에는 반복 단위가 필요합니다.");
