@@ -32,6 +32,9 @@ public class User {
 
     private Integer gender;
 
+    @Column(name = "job")
+    private String job;
+
     @Column(nullable = false)
     private String provider;
 
