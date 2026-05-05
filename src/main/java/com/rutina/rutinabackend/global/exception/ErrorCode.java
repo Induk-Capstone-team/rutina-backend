@@ -14,6 +14,9 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_003", "존재하지 않는 사용자입니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_004", "유효하지 않거나 만료된 리프레시 토큰입니다."),
 
+    // 루틴
+    ROUTINE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTINE_001", "루틴을 찾을 수 없습니다."),
+
     // 공통
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "COMMON_001", "입력값이 올바르지 않습니다.");
 
