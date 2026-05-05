@@ -14,12 +14,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/ai-routines")
 @RequiredArgsConstructor
-@Tag(name = "AI Routine", description = "AI 루틴 추천 API")
-public class AiController {
+    @Tag(name = "AI Routine", description = "AI 루틴 추천 API")
+    public class AiController {
 
     // 루틴 추천 조건 선택지 조회 API
     private final AiService aiService;
