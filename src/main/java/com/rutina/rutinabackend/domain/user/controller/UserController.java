@@ -2,6 +2,7 @@ package com.rutina.rutinabackend.domain.user.controller;
 
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
+import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
 import com.rutina.rutinabackend.domain.user.service.UserService;
 import com.rutina.rutinabackend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,5 +37,16 @@ public class UserController {
         // 실제 닉네임 변경 로직은 서비스에서 처리하고, 컨트롤러는 요청/응답만 담당합니다.
         NicknameUpdateResponse response = userService.updateNickname(userId, request);
         return ApiResponse.ok("닉네임이 변경되었습니다.", response);
+    }
+
+    @Operation(summary = "비밀번호 변경")
+    @PatchMapping("/me/password")
+    public ApiResponse<Void> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody PasswordChangeRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        userService.changePassword(userId, request);
+        return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
     }
 }
