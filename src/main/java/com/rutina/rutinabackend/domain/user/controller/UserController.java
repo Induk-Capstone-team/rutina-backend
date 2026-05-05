@@ -2,6 +2,7 @@ package com.rutina.rutinabackend.domain.user.controller;
 
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
+import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
 import com.rutina.rutinabackend.domain.user.service.UserService;
 import com.rutina.rutinabackend.global.response.ApiResponse;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +25,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+
+    @Operation(summary = "내 정보 조회")
+    @GetMapping("/me")
+    public ApiResponse<UserResponse> getMe(@AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UserResponse response = userService.getMe(userId);
+        return ApiResponse.ok("내 정보를 불러왔습니다.", response);
+    }
 
     @Operation(summary = "닉네임 변경")
     @PatchMapping("/me/nickname")

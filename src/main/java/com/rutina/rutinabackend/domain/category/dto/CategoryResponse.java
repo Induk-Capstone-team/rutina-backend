@@ -24,6 +24,8 @@ public class CategoryResponse {
     // 목록 조회 시 프론트가 현재 순서를 알 수 있도록 응답에 포함
     private Integer sortOrder;
 
+    private Boolean hidden;
+
     // Entity -> Response DTO 변환
     public static CategoryResponse from(Category category) {
         return CategoryResponse.builder()
@@ -32,6 +34,7 @@ public class CategoryResponse {
                 .colorCode(category.getColorCode())
                 .rtSum(category.getRtSum())
                 .sortOrder(category.getSortOrder())
+                .hidden(category.getHidden())
                 .build();
     }
 }

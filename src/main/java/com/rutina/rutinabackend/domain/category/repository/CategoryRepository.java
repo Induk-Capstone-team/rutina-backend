@@ -9,8 +9,15 @@ import java.util.Optional;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    // 내 카테고리 목록 조회
+
+    // 내 카테고리 목록 조회 - 전체
     List<Category> findAllByUser_IdOrderBySortOrderAscIdAsc(Long userId);
+
+    // 내 카테고리 목록 조회 - 숨김 제외
+    List<Category> findAllByUser_IdAndHiddenFalseOrderBySortOrderAscIdAsc(Long userId);
+
+    // 내 숨김 카테고리 목록 조회
+    List<Category> findAllByUser_IdAndHiddenTrueOrderBySortOrderAscIdAsc(Long userId);
 
     // 내 카테고리 단건 조회
     Optional<Category> findByIdAndUser_Id(Long categoryId, Long userId);

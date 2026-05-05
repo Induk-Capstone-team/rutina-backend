@@ -3,6 +3,7 @@ package com.rutina.rutinabackend.domain.user.service;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
+import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
@@ -17,6 +18,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Transactional(readOnly = true)
+    public UserResponse getMe(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+        return UserResponse.from(user);
+    }
 
     @Transactional
     public NicknameUpdateResponse updateNickname(Long userId, NicknameUpdateRequest request) {

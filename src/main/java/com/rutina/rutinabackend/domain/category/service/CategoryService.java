@@ -65,8 +65,24 @@ public class CategoryService {
         return CategoryResponse.from(savedCategory);
     }
 
-    // 내 카테고리 전체 조회
+    // 내 카테고리 목록 조회 - 숨김 제외
     public List<CategoryResponse> getCategories(Long userId) {
+        return categoryRepository.findAllByUser_IdAndHiddenFalseOrderBySortOrderAscIdAsc(userId)
+                .stream()
+                .map(CategoryResponse::from)
+                .toList();
+    }
+
+    // 내 숨김 카테고리 목록 조회
+    public List<CategoryResponse> getHiddenCategories(Long userId) {
+        return categoryRepository.findAllByUser_IdAndHiddenTrueOrderBySortOrderAscIdAsc(userId)
+                .stream()
+                .map(CategoryResponse::from)
+                .toList();
+    }
+
+    // 내 카테고리 전체 조회
+    public List<CategoryResponse> getAllCategories(Long userId) {
         return categoryRepository.findAllByUser_IdOrderBySortOrderAscIdAsc(userId)
                 .stream()
                 .map(CategoryResponse::from)
@@ -92,7 +108,8 @@ public class CategoryService {
 
         category.update(
                 categoryName,
-                request.getColorCode()
+                request.getColorCode(),
+                request.getHidden()
         );
 
         return CategoryResponse.from(category);
