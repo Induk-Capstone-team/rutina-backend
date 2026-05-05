@@ -74,6 +74,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         return switch (registrationId) {
             case "kakao" -> new KakaoUserInfo(attributes);
             case "naver" -> new NaverUserInfo(attributes);
+            case "google" -> new GoogleUserInfo(attributes);
             default -> throw oauth2Error("Unsupported provider: " + registrationId);
         };
     }
