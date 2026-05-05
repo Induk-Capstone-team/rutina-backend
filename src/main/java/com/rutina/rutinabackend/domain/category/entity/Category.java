@@ -31,6 +31,9 @@ public class Category {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;  // 정렬 순서
 
+    @Column(nullable = false)
+    private Boolean hidden = false; // 카테고리 숨김(True = 숨김 상태)
+
     @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMPTZ DEFAULT now()")
     private OffsetDateTime createdAt;
@@ -52,9 +55,10 @@ public class Category {
         return category;
     }
     // ── 카테고리 수정 시 사용 ──────────────────────────
-    public void update(String name, String colorCode) {
+    public void update(String name, String colorCode, Boolean hidden) {
         this.name = name;
         this.colorCode = colorCode;
+        this.hidden = hidden;
         this.updatedAt = OffsetDateTime.now();
     }
 
@@ -64,4 +68,7 @@ public class Category {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    public void updateHidden(Boolean hidden) {
+        this.hidden = hidden;
+    }
 }
