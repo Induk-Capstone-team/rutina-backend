@@ -47,10 +47,14 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     if (userRepository.existsByEmail(email)) {
                         throw oauth2Error("An account with the same email already exists");
                     }
+
+                    if (isBlank(userInfo.getNickname())) {
+                        throw oauth2Error("OAuth2 nickname is required");
+                    }
                     return userRepository.save(
                             User.createOAuth(
                                     email,
-                                    defaultNickname(userInfo, email),
+                                    userInfo.getNickname(),
                                     userInfo.getProvider(),
                                     userInfo.getProviderId()
                             )
@@ -74,12 +78,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         };
     }
 
-    private String defaultNickname(OAuth2UserInfo userInfo, String email) {
-        if (!isBlank(userInfo.getNickname())) {
-            return userInfo.getNickname();
-        }
-        return email.split("@")[0];
-    }
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();

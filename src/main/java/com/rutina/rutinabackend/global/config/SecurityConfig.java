@@ -30,6 +30,7 @@ public class SecurityConfig {
     // 인증 없이 접근 가능한 엔드포인트
     private static final String[] PUBLIC_URLS = {
             "/api/v1/auth/**",
+            "/api/ai/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
