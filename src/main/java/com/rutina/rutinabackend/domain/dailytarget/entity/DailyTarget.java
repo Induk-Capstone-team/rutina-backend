@@ -45,4 +45,10 @@ public class DailyTarget {
         dailyTarget.updatedAt = OffsetDateTime.now();
         return dailyTarget;
     }
+
+    // ── 완료 상태 토글 ─────────────────────────────────────
+    public void toggleCompleted() {
+        this.isCompleted = !this.isCompleted;
+        this.updatedAt = OffsetDateTime.now();
+    }
 }
