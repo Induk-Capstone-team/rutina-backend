@@ -13,6 +13,9 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_002", "이메일 또는 비밀번호가 올바르지 않습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_003", "존재하지 않는 사용자입니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_004", "유효하지 않거나 만료된 리프레시 토큰입니다."),
+    NOT_LOCAL_USER(HttpStatus.FORBIDDEN, "AUTH_005", "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
+    WRONG_PASSWORD(HttpStatus.UNAUTHORIZED, "AUTH_006", "현재 비밀번호가 올바르지 않습니다."),
+    SAME_AS_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "AUTH_007", "현재 비밀번호와 동일한 비밀번호로 변경할 수 없습니다."),
 
     // 루틴
     ROUTINE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTINE_001", "루틴을 찾을 수 없습니다."),

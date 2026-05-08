@@ -2,11 +2,13 @@ package com.rutina.rutinabackend.domain.user.service;
 
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
+import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
 import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public UserResponse getMe(Long userId) {
@@ -36,5 +39,28 @@ public class UserService {
 
         // 변경된 닉네임을 바로 응답으로 내려주기 위해 응답 DTO로 변환합니다.
         return NicknameUpdateResponse.from(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, PasswordChangeRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+
+        // 로컬 로그인 유저인지 확인
+        if (!"LOCAL".equals(user.getProvider())) {
+            throw ErrorCode.NOT_LOCAL_USER.toException();
+        }
+
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw ErrorCode.WRONG_PASSWORD.toException();
+        }
+
+        // 새로운 비밀번호 검증
+        if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
+            throw ErrorCode.SAME_AS_CURRENT_PASSWORD.toException();
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 }
