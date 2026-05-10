@@ -16,6 +16,7 @@ public interface AiLogRepository extends JpaRepository<AiLog, Long> {
 
     long countByUser_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
             Long userId,
+            String requestType,
             OffsetDateTime start,
             OffsetDateTime end
     );

@@ -79,6 +79,8 @@ public class AiService {
             );
         }
 
+        Long userId;
+
         try {
             userId = Long.valueOf(userDetails.getUsername());
         } catch (NumberFormatException e) {
@@ -112,8 +114,18 @@ public class AiService {
         }
     }
 
+    // ADMIN 계정은 AI 요청 횟수 제한 제외
+    private boolean isAdmin(User user) {
+        return "ADMIN".equals(user.getRole());
+    }
+
+
     // 계정당 하루 AI 추천 요청 횟수 제한
-    private void validateDailyAiLimit(Long userId) {
+    private void validateDailyAiLimit(User user) {
+        if (isAdmin(user)) {
+            return;
+        }
+
         LocalDate today = LocalDate.now(KOREA_ZONE);
 
         OffsetDateTime startOfToday = today
@@ -127,7 +139,7 @@ public class AiService {
 
         long todayCount = aiLogRepository
                 .countByUser_IdAndRequestTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                        userId,
+                        user.getId(),
                         REQUEST_TYPE_ROUTINE_RECOMMEND,
                         startOfToday,
                         startOfTomorrow
@@ -295,7 +307,7 @@ public class AiService {
     ) {
         User user = getLoginUser(userDetails);
 
-        validateDailyAiLimit(user.getId());
+        validateDailyAiLimit(user);
 
         validateUserInfo(user);
         validateRequestOptions(request);
