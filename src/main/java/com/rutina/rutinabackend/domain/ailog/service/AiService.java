@@ -1,21 +1,27 @@
 package com.rutina.rutinabackend.domain.ailog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import com.rutina.rutinabackend.domain.ailog.dto.*;
 import com.rutina.rutinabackend.domain.ailog.repository.AiLogRepository;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.exception.BusinessException;
+import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,6 +30,10 @@ import java.util.stream.Collectors;
 public class AiService {
     // 나중에 AI 기능이 여러 개로 늘어났을 때, 루틴 추천 로그만 구분하기 위해 사용한다.
     private static final String REQUEST_TYPE_ROUTINE_RECOMMEND = "ROUTINE_RECOMMEND";
+
+    //루틴 횟수 제한
+    private static final int DAILY_AI_LIMIT = 3;
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     // 프론트에서 자유 입력 거부하고, 하단 선택지에서만 고르게 하기 위한 목록(임시)
     private static final List<String> PURPOSES = List.of(
@@ -164,6 +174,36 @@ public class AiService {
                     HttpStatus.BAD_REQUEST,
                     "AI_PROFILE_INFO_REQUIRED",
                     "직업, 연령, 성별 정보를 입력해야 이용 가능한 서비스입니다."
+            );
+        }
+    }
+
+    // 계정당 하루 AI 추천 요청 횟수 제한
+    private void validateDailyAiLimit(Long userId) {
+        LocalDate today = LocalDate.now(KOREA_ZONE);
+
+        OffsetDateTime startOfToday = today
+                .atStartOfDay(KOREA_ZONE)
+                .toOffsetDateTime();
+
+        OffsetDateTime startOfTomorrow = today
+                .plusDays(1)
+                .atStartOfDay(KOREA_ZONE)
+                .toOffsetDateTime();
+
+        long todayCount = aiLogRepository
+                .countByUser_IdAndRequestTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        userId,
+                        REQUEST_TYPE_ROUTINE_RECOMMEND,
+                        startOfToday,
+                        startOfTomorrow
+                );
+
+        if (todayCount >= DAILY_AI_LIMIT) {
+            throw new BusinessException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "AI_DAILY_LIMIT_EXCEEDED",
+                    "AI 추천은 하루에 3번까지만 요청할 수 있습니다."
             );
         }
     }
@@ -321,6 +361,8 @@ public class AiService {
     ) {
         User user = getLoginUser(userDetails);
 
+        validateDailyAiLimit(user.getId());
+        
         validateUserInfo(user);
         validateRequestOptions(request);
 
