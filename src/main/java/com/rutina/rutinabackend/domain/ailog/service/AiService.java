@@ -125,42 +125,12 @@ public class AiService {
 
         String username = userDetails.getUsername();
 
-        try {
-            Long userId = Long.valueOf(username);
-
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new BusinessException(
-                            HttpStatus.NOT_FOUND,
-                            "USER_NOT_FOUND",
-                            "사용자를 찾을 수 없습니다."
-                    ));
-        } catch (NumberFormatException ignored) {
-            Long userId = findUserIdByEmail(username);
-
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new BusinessException(
-                            HttpStatus.NOT_FOUND,
-                            "USER_NOT_FOUND",
-                            "사용자를 찾을 수 없습니다."
-                    ));
-        }
-    }
-
-    // UserDetails.username이 email인 경우 users 테이블에서 id 조회
-    private Long findUserIdByEmail(String email) {
-        try {
-            return jdbcTemplate.queryForObject(
-                    "select id from users where email = ?",
-                    Long.class,
-                    email
-            );
-        } catch (EmptyResultDataAccessException e) {
-            throw new BusinessException(
-                    HttpStatus.NOT_FOUND,
-                    "USER_NOT_FOUND",
-                    "사용자를 찾을 수 없습니다."
-            );
-        }
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
     }
 
     // AI 추천에 필요한 사용자 정보 검증
@@ -362,7 +332,7 @@ public class AiService {
         User user = getLoginUser(userDetails);
 
         validateDailyAiLimit(user.getId());
-        
+
         validateUserInfo(user);
         validateRequestOptions(request);
 
