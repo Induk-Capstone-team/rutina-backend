@@ -17,7 +17,7 @@ public interface AiLogRepository extends JpaRepository<AiLog, Long> {
     //추가하기 버튼 눌렀을 때, 사용자가 선택한 optionId가 어떤 루틴 제목인지 알기 위함
     Optional<AiLog> findByIdAndUser_Id(Long id, Long userId);
 
-    long countByUser_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+    long countByUser_IdAndRequestTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
             Long userId,
             String requestType,
             OffsetDateTime start,
