@@ -26,6 +26,8 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.rutina.rutinabackend.domain.ailog.constant.AiRoutineOptionConstants.*;
+
 @Service
 public class AiService {
     // 나중에 AI 기능이 여러 개로 늘어났을 때, 루틴 추천 로그만 구분하기 위해 사용한다.
@@ -34,52 +36,6 @@ public class AiService {
     //루틴 횟수 제한
     private static final int DAILY_AI_LIMIT = 3;
     private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
-
-    // 프론트에서 자유 입력 거부하고, 하단 선택지에서만 고르게 하기 위한 목록(임시)
-    private static final List<String> PURPOSES = List.of(
-            "건강 관리",
-            "자기계발",
-            "공부/집중",
-            "생활 습관 개선",
-            "취미 관리"
-    );
-
-    // 목적
-    private static final List<String> MAIN_ACTIVITY_TIMES = List.of(
-            "아침",
-            "오전",
-            "오후",
-            "저녁",
-            "밤"
-    );
-
-    // 루틴 활동 타입
-    private static final List<String> ACTIVITY_TYPES = List.of(
-            "실내 활동",
-            "야외 활동",
-            "정적인 활동",
-            "동적인 활동",
-            "혼자 하는 활동",
-            "함께 하는 활동"
-    );
-
-    // 취미
-    private static final List<String> HOBBIES = List.of(
-            "독서",
-            "운동",
-            "음악",
-            "영화/드라마",
-            "게임",
-            "요리",
-            "산책",
-            "일기",
-            "공부",
-            "청소/정리",
-            "없음"
-    );
-
-    // AI가 추천할 수 있는 루틴 소요 시간 목록
-    private static final List<Integer> ALLOWED_DURATIONS = List.of(10, 20, 30, 40, 50, 60);
 
     // 의존성 주입 필드
 
