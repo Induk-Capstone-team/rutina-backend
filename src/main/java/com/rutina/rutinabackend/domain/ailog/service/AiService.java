@@ -123,7 +123,15 @@ public class AiService {
             );
         }
 
-        String username = userDetails.getUsername();
+        try {
+            userId = Long.valueOf(userDetails.getUsername());
+        } catch (NumberFormatException e) {
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "INVALID_AUTHENTICATION",
+                    "로그인 사용자 정보가 올바르지 않습니다."
+            );
+        }
 
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(
