@@ -1,9 +1,8 @@
 package com.rutina.rutinabackend.global.oauth2;
 
-import com.rutina.rutinabackend.domain.refreshToken.entity.RefreshToken;
-import com.rutina.rutinabackend.domain.refreshToken.repository.RefreshTokenRepository;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
+import com.rutina.rutinabackend.global.auth.token.RefreshTokenStore;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
 import com.rutina.rutinabackend.global.jwt.JwtProvider;
 import jakarta.servlet.ServletException;
@@ -26,7 +25,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtProvider jwtProvider;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenStore refreshTokenStore;
 
     @Value("${oauth2.redirect-url}")
     private String redirectUrl;
@@ -48,10 +47,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
 
-        refreshTokenRepository.deleteByUserIdAndDevice(user.getId(), device);
-        refreshTokenRepository.save(
-                RefreshToken.of(user, refreshToken, jwtProvider.getRefreshTokenExpiry(), device)
-        );
+        // getRefreshTokenExpiry()는 ms 단위, store 인터페이스는 seconds 단위
+        refreshTokenStore.save(user.getId(), device, refreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
 
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
                 .queryParam("accessToken", accessToken)
