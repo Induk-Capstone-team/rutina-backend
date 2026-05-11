@@ -32,11 +32,6 @@ spring:
         options:
           model: gpt-4o-mini
           temperature: 0.7
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
-
   # ── 소셜 로그인 ──────────────────────────────────────────
   security:
     oauth2:
