@@ -2,11 +2,9 @@ package com.rutina.rutinabackend.domain.user.service;
 
 import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
-import com.rutina.rutinabackend.domain.refreshToken.entity.RefreshToken;
 import com.rutina.rutinabackend.domain.user.entity.User;
-import java.time.OffsetDateTime;
-import com.rutina.rutinabackend.domain.refreshToken.repository.RefreshTokenRepository;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
+import com.rutina.rutinabackend.global.auth.token.RefreshTokenStore;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
 import com.rutina.rutinabackend.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenStore refreshTokenStore;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
@@ -56,11 +54,8 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
 
-        // 같은 기기 재로그인 시 해당 기기 토큰만 교체 (다른 기기 토큰 유지)
-        refreshTokenRepository.deleteByUserIdAndDevice(user.getId(), device);
-        refreshTokenRepository.save(
-                RefreshToken.of(user, refreshToken, jwtProvider.getRefreshTokenExpiry(), device)
-        );
+        // getRefreshTokenExpiry()는 ms 단위, store 인터페이스는 seconds 단위
+        refreshTokenStore.save(user.getId(), device, refreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
 
         return LoginResponse.of(accessToken, refreshToken);
     }
@@ -74,28 +69,19 @@ public class AuthService {
             throw ErrorCode.INVALID_REFRESH_TOKEN.toException();
         }
 
-        // DB에 저장된 토큰인지 확인
-        RefreshToken saved = refreshTokenRepository.findByTokenValue(request.refreshToken())
+        // empty → 존재하지 않거나 만료된 토큰 (prod 프로파일은 store 내부에서 DB expiresAt도 검증)
+        Long userId = refreshTokenStore.findUserIdByToken(request.refreshToken())
                 .orElseThrow(ErrorCode.INVALID_REFRESH_TOKEN::toException);
 
-        // DB expires_at 만료 검증
-        if (saved.getExpiresAt().isBefore(OffsetDateTime.now())) {
-            // 토근 삭제
-            refreshTokenRepository.delete(saved);
-            throw ErrorCode.INVALID_REFRESH_TOKEN.toException();
-        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
 
-        User user = saved.getUser();
-
-        // 새 토큰 발급 (rotation)
         String newAccessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String newRefreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
 
-        // 기존 토큰 교체
-        refreshTokenRepository.delete(saved);
-        refreshTokenRepository.save(
-                RefreshToken.of(user, newRefreshToken, jwtProvider.getRefreshTokenExpiry(), device)
-        );
+        // rotation: 구 토큰 폐기 후 새 토큰 등록
+        refreshTokenStore.deleteByToken(request.refreshToken());
+        refreshTokenStore.save(user.getId(), device, newRefreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
 
         return LoginResponse.of(newAccessToken, newRefreshToken);
     }
@@ -103,8 +89,7 @@ public class AuthService {
     // ── 로그아웃 ──────────────────────────────────────────────
     @Transactional // refreshToken으로 기기별 로그아웃
     public void logout(TokenRefreshRequest request) {
-        refreshTokenRepository.findByTokenValue(request.refreshToken())
-                .ifPresent(refreshTokenRepository::delete);
+        refreshTokenStore.deleteByToken(request.refreshToken());
     }
 
     // ── 이메일 중복 확인 ─────────────────────────
