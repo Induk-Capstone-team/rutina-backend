@@ -39,6 +39,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     ) throws IOException, ServletException {
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         Long userId = Long.valueOf(String.valueOf(oauth2User.getAttributes().get("userId")));
+        boolean isNewUser = Boolean.TRUE.equals(oauth2User.getAttributes().get("isNewUser"));
         String device = request.getHeader("User-Agent"); // 기기별 RefreshToken 관리용
 
         User user = userRepository.findById(userId)
@@ -54,6 +55,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshToken)
                 .queryParam("tokenType", "Bearer")
+                .queryParam("isNewUser", isNewUser)
                 .build()
                 .toUriString();
 
