@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
-@Profile("prod")
+@Profile("db")
 @Component
 @RequiredArgsConstructor
 public class DbRefreshTokenStore implements RefreshTokenStore {
