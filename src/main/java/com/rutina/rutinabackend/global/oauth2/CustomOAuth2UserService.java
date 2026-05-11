@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -41,27 +42,33 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 : userInfo.getEmail();
 
         // provider + providerId 기준으로 기존 회원 조회, 없으면 자동 가입
-        User user = userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId())
-                .orElseGet(() -> {
-                    // 동일 이메일 계정 존재 시 예외 처리
-                    if (userRepository.existsByEmail(email)) {
-                        throw oauth2Error("An account with the same email already exists");
-                    }
+        Optional<User> existingUser = userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId());
+        boolean isNewUser = existingUser.isEmpty();
 
-                    if (isBlank(userInfo.getNickname())) {
-                        throw oauth2Error("OAuth2 nickname is required");
-                    }
-                    return userRepository.save(
-                            User.createOAuth(
-                                    email,
-                                    userInfo.getNickname(),
-                                    userInfo.getProvider(),
-                                    userInfo.getProviderId()
-                            )
-                    );
-                });
+        User user;
+        if (isNewUser) {
+            // 동일 이메일 계정 존재 시 예외 처리
+            if (userRepository.existsByEmail(email)) {
+                throw oauth2Error("An account with the same email already exists");
+            }
+            if (isBlank(userInfo.getNickname())) {
+                throw oauth2Error("OAuth2 nickname is required");
+            }
+            user = userRepository.save(
+                    User.createOAuth(
+                            email,
+                            userInfo.getNickname(),
+                            userInfo.getProvider(),
+                            userInfo.getProviderId()
+                    )
+            );
+        } else {
+            user = existingUser.get();
+        }
+
         Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
         attributes.put("userId", user.getId());
+        attributes.put("isNewUser", isNewUser);
 
         return new DefaultOAuth2User(
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole())),
