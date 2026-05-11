@@ -1,75 +1,41 @@
 package com.rutina.rutinabackend.domain.ailog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import com.rutina.rutinabackend.domain.ailog.dto.*;
 import com.rutina.rutinabackend.domain.ailog.repository.AiLogRepository;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.exception.BusinessException;
+import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.rutina.rutinabackend.domain.ailog.constant.AiRoutineOptionConstants.*;
 
 @Service
 public class AiService {
     // 나중에 AI 기능이 여러 개로 늘어났을 때, 루틴 추천 로그만 구분하기 위해 사용한다.
     private static final String REQUEST_TYPE_ROUTINE_RECOMMEND = "ROUTINE_RECOMMEND";
 
-    // 프론트에서 자유 입력 거부하고, 하단 선택지에서만 고르게 하기 위한 목록(임시)
-    private static final List<String> PURPOSES = List.of(
-            "건강 관리",
-            "자기계발",
-            "공부/집중",
-            "생활 습관 개선",
-            "취미 관리"
-    );
-
-    // 목적
-    private static final List<String> MAIN_ACTIVITY_TIMES = List.of(
-            "아침",
-            "오전",
-            "오후",
-            "저녁",
-            "밤"
-    );
-
-    // 루틴 활동 타입
-    private static final List<String> ACTIVITY_TYPES = List.of(
-            "실내 활동",
-            "야외 활동",
-            "정적인 활동",
-            "동적인 활동",
-            "혼자 하는 활동",
-            "함께 하는 활동"
-    );
-
-    // 취미
-    private static final List<String> HOBBIES = List.of(
-            "독서",
-            "운동",
-            "음악",
-            "영화/드라마",
-            "게임",
-            "요리",
-            "산책",
-            "일기",
-            "공부",
-            "청소/정리",
-            "없음"
-    );
-
-    // AI가 추천할 수 있는 루틴 소요 시간 목록
-    private static final List<Integer> ALLOWED_DURATIONS = List.of(10, 20, 30, 40, 50, 60);
+    //루틴 횟수 제한
+    private static final int DAILY_AI_LIMIT = 3;
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     // 의존성 주입 필드
 
@@ -113,44 +79,24 @@ public class AiService {
             );
         }
 
-        String username = userDetails.getUsername();
+        Long userId;
 
         try {
-            Long userId = Long.valueOf(username);
-
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new BusinessException(
-                            HttpStatus.NOT_FOUND,
-                            "USER_NOT_FOUND",
-                            "사용자를 찾을 수 없습니다."
-                    ));
-        } catch (NumberFormatException ignored) {
-            Long userId = findUserIdByEmail(username);
-
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new BusinessException(
-                            HttpStatus.NOT_FOUND,
-                            "USER_NOT_FOUND",
-                            "사용자를 찾을 수 없습니다."
-                    ));
-        }
-    }
-
-    // UserDetails.username이 email인 경우 users 테이블에서 id 조회
-    private Long findUserIdByEmail(String email) {
-        try {
-            return jdbcTemplate.queryForObject(
-                    "select id from users where email = ?",
-                    Long.class,
-                    email
-            );
-        } catch (EmptyResultDataAccessException e) {
+            userId = Long.valueOf(userDetails.getUsername());
+        } catch (NumberFormatException e) {
             throw new BusinessException(
-                    HttpStatus.NOT_FOUND,
-                    "USER_NOT_FOUND",
-                    "사용자를 찾을 수 없습니다."
+                    HttpStatus.UNAUTHORIZED,
+                    "INVALID_AUTHENTICATION",
+                    "로그인 사용자 정보가 올바르지 않습니다."
             );
         }
+
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
     }
 
     // AI 추천에 필요한 사용자 정보 검증
@@ -164,6 +110,46 @@ public class AiService {
                     HttpStatus.BAD_REQUEST,
                     "AI_PROFILE_INFO_REQUIRED",
                     "직업, 연령, 성별 정보를 입력해야 이용 가능한 서비스입니다."
+            );
+        }
+    }
+
+    // ADMIN 계정은 AI 요청 횟수 제한 제외
+    private boolean isAdmin(User user) {
+        return "ADMIN".equals(user.getRole());
+    }
+
+
+    // 계정당 하루 AI 추천 요청 횟수 제한
+    private void validateDailyAiLimit(User user) {
+        if (isAdmin(user)) {
+            return;
+        }
+
+        LocalDate today = LocalDate.now(KOREA_ZONE);
+
+        OffsetDateTime startOfToday = today
+                .atStartOfDay(KOREA_ZONE)
+                .toOffsetDateTime();
+
+        OffsetDateTime startOfTomorrow = today
+                .plusDays(1)
+                .atStartOfDay(KOREA_ZONE)
+                .toOffsetDateTime();
+
+        long todayCount = aiLogRepository
+                .countByUser_IdAndRequestTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        user.getId(),
+                        REQUEST_TYPE_ROUTINE_RECOMMEND,
+                        startOfToday,
+                        startOfTomorrow
+                );
+
+        if (todayCount >= DAILY_AI_LIMIT) {
+            throw new BusinessException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "AI_DAILY_LIMIT_EXCEEDED",
+                    "AI 추천은 하루에 3번까지만 요청할 수 있습니다."
             );
         }
     }
@@ -320,6 +306,8 @@ public class AiService {
             AiRoutineRecommendRequest request
     ) {
         User user = getLoginUser(userDetails);
+
+        validateDailyAiLimit(user);
 
         validateUserInfo(user);
         validateRequestOptions(request);
