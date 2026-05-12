@@ -41,9 +41,9 @@ public class AuthService {
         User user = User.createLocal(request.email(), encodedPassword, request.nickname());
         userRepository.save(user);
 
+        // 이메일 인증 삭제
         emailVerificationService.clearVerified(request.email());
 
-        return SignUpResponse.from(user);
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
 
