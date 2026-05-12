@@ -30,6 +30,7 @@ public class SecurityConfig {
     // 인증 없이 접근 가능한 엔드포인트
     private static final String[] PUBLIC_URLS = {
             "/api/v1/auth/**",
+            "/api/v1/users/password-reset",
             "/api/ai/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -38,6 +39,7 @@ public class SecurityConfig {
             "/error",
             "/login/oauth2/**",    // 카카오/네이버 콜백 수신
             "/oauth2/**",          // 소셜 로그인 시작 요청
+            "/images/**",          // 이미지
     };
 
     @Bean
