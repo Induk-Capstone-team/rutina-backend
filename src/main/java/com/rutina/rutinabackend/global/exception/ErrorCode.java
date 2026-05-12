@@ -16,6 +16,9 @@ public enum ErrorCode {
     NOT_LOCAL_USER(HttpStatus.FORBIDDEN, "AUTH_005", "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."),
     WRONG_PASSWORD(HttpStatus.UNAUTHORIZED, "AUTH_006", "현재 비밀번호가 올바르지 않습니다."),
     SAME_AS_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "AUTH_007", "현재 비밀번호와 동일한 비밀번호로 변경할 수 없습니다."),
+    EMAIL_VERIFICATION_REQUIRED(HttpStatus.FORBIDDEN, "AUTH_008", "이메일 인증이 필요합니다."),
+    INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "AUTH_009", "인증번호가 올바르지 않거나 만료되었습니다."),
+    EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH_010", "이메일 발송에 실패했습니다."),
 
     // 루틴
     ROUTINE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTINE_001", "루틴을 찾을 수 없습니다."),
