@@ -25,7 +25,7 @@ public class AuthService {
 
     // ── 회원가입 ───────────────────────────────────────────
     @Transactional
-    public SignUpResponse signUp(SignUpRequest request) {
+    public LoginResponse signUp(SignUpRequest request, String device) {
 
         // 이메일 중복 확인
         if (userRepository.existsByEmail(request.email())) {
@@ -44,6 +44,12 @@ public class AuthService {
         emailVerificationService.clearVerified(request.email());
 
         return SignUpResponse.from(user);
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
+
+        refreshTokenStore.save(user.getId(), device, refreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
+
+        return LoginResponse.of(accessToken, refreshToken);
     }
 
     // ── 로그인 ─────────────────────────────────────────────
