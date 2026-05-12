@@ -27,8 +27,10 @@ public class AuthController {
     @SecurityRequirements({})
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<SignUpResponse> signUp(@RequestBody @Valid SignUpRequest request) {
-        SignUpResponse response = authService.signUp(request);
+    public ApiResponse<LoginResponse> signUp(@RequestBody @Valid SignUpRequest request,
+                                             HttpServletRequest httpRequest) {
+        String device = httpRequest.getHeader("User-Agent");
+        LoginResponse response = authService.signUp(request, device);
         return ApiResponse.created("회원가입이 완료되었습니다.", response);
     }
 
