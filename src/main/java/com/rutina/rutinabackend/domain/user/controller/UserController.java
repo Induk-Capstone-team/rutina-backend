@@ -61,7 +61,11 @@ public class UserController {
         return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
     }
 
-    @Operation(summary = "프로필 정보 수정(닉네임 변경X)")
+    @Operation(
+            summary = "프로필 정보 수정(닉네임 변경X)",
+            description = "null로 전달된 필드는 기존 값을 그대로 유지합니다.\n\n" +
+                          "**gender**: 0 = 남성, 1 = 여성"
+    )
     @PatchMapping("/me/profile")
     public ApiResponse<UserResponse> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
