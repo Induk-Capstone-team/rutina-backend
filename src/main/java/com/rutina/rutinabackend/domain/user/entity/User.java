@@ -90,4 +90,11 @@ public class User {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    public void updateProfile(String job, String age, Integer gender) {
+        if (job != null)    this.job = job;
+        if (age != null)    this.age = age;
+        if (gender != null) this.gender = gender;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
 }
