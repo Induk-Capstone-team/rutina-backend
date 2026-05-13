@@ -19,6 +19,19 @@ spring:
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
 
+  mail:
+    host: email-smtp.ap-northeast-2.amazonaws.com
+    port: 587
+    username: ${SES_SMTP_USERNAME}
+    password: ${SES_SMTP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
 # 제미나이 사용
 #  ai:
 #    google:
@@ -93,3 +106,8 @@ jwt:
 # ── 소셜 로그인 리다이렉트 URL (환경별로 분리) ────────────────
 oauth2:
   redirect-url: ${OAUTH2_REDIRECT_URL:http://localhost:3000/oauth/callback}
+
+email:
+  from: official@rutina.co.kr
+  verification-ttl-seconds: 300      # 인증번호 유효시간 5분
+  verified-ttl-seconds: 600          # 인증완료 상태 유효시간 10분

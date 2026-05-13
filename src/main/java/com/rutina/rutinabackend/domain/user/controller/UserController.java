@@ -2,11 +2,13 @@ package com.rutina.rutinabackend.domain.user.controller;
 
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
-import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
+import com.rutina.rutinabackend.domain.user.dto.PasswordResetRequest;
+import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.service.UserService;
 import com.rutina.rutinabackend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,5 +61,13 @@ public class UserController {
         Long userId = Long.parseLong(userDetails.getUsername());
         userService.changePassword(userId, request);
         return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
+    }
+
+    @Operation(summary = "비밀번호 재설정", description = "이메일 인증 완료 후 새 비밀번호로 재설정합니다. 반드시 /api/v1/email/password-reset/confirm 인증을 먼저 완료해야 합니다.")
+    @SecurityRequirements({})
+    @PostMapping("/password-reset")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        userService.resetPassword(request.email(), request.newPassword());
+        return ApiResponse.ok("비밀번호가 재설정되었습니다.", null);
     }
 }
