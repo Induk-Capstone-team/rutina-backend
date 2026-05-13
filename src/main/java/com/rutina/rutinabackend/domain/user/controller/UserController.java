@@ -2,8 +2,9 @@ package com.rutina.rutinabackend.domain.user.controller;
 
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
-import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
+import com.rutina.rutinabackend.domain.user.dto.UserProfileUpdateRequest;
+import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.service.UserService;
 import com.rutina.rutinabackend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,5 +59,16 @@ public class UserController {
         Long userId = Long.parseLong(userDetails.getUsername());
         userService.changePassword(userId, request);
         return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
+    }
+
+    @Operation(summary = "프로필 정보 수정(닉네임 변경X)")
+    @PatchMapping("/me/profile")
+    public ApiResponse<UserResponse> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody UserProfileUpdateRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UserResponse response = userService.updateProfile(userId, request);
+        return ApiResponse.ok("프로필 정보가 업데이트되었습니다.", response);
     }
 }
