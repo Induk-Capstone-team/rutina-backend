@@ -4,6 +4,7 @@ import com.rutina.rutinabackend.domain.email.service.EmailVerificationService;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
+import com.rutina.rutinabackend.domain.user.dto.UserProfileUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
@@ -64,6 +65,14 @@ public class UserService {
         }
 
         user.changePassword(passwordEncoder.encode(request.newPassword()));
+    }
+
+    @Transactional
+    public UserResponse updateProfile(Long userId, UserProfileUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+        user.updateProfile(request.job(), request.age(), request.gender());
+        return UserResponse.from(user);
     }
 
     @Transactional

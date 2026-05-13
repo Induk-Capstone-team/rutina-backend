@@ -5,6 +5,7 @@ import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
 import com.rutina.rutinabackend.domain.user.dto.PasswordResetRequest;
 import com.rutina.rutinabackend.domain.user.dto.UserResponse;
+import com.rutina.rutinabackend.domain.user.dto.UserProfileUpdateRequest;
 import com.rutina.rutinabackend.domain.user.service.UserService;
 import com.rutina.rutinabackend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,6 +62,21 @@ public class UserController {
         Long userId = Long.parseLong(userDetails.getUsername());
         userService.changePassword(userId, request);
         return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
+    }
+
+    @Operation(
+            summary = "프로필 정보 수정(닉네임 변경X)",
+            description = "null로 전달된 필드는 기존 값을 그대로 유지합니다.\n\n" +
+                          "**gender**: 0 = 남성, 1 = 여성"
+    )
+    @PatchMapping("/me/profile")
+    public ApiResponse<UserResponse> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody UserProfileUpdateRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UserResponse response = userService.updateProfile(userId, request);
+        return ApiResponse.ok("프로필 정보가 업데이트되었습니다.", response);
     }
 
     @Operation(summary = "비밀번호 재설정", description = "이메일 인증 완료 후 새 비밀번호로 재설정합니다. 반드시 /api/v1/email/password-reset/confirm 인증을 먼저 완료해야 합니다.")
