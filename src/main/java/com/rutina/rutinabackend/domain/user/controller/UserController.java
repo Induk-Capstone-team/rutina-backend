@@ -63,7 +63,7 @@ public class UserController {
         return ApiResponse.ok("비밀번호가 변경되었습니다.", null);
     }
 
-    @Operation(summary = "비밀번호 재설정 (이메일 인증 기반)")
+    @Operation(summary = "비밀번호 재설정", description = "이메일 인증 완료 후 새 비밀번호로 재설정합니다. 반드시 /api/v1/email/password-reset/confirm 인증을 먼저 완료해야 합니다.")
     @SecurityRequirements({})
     @PostMapping("/password-reset")
     public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {

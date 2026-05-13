@@ -22,7 +22,7 @@ public class EmailController {
 
     private final EmailVerificationService emailVerificationService;
 
-    @Operation(summary = "회원가입용 인증번호 발송")
+    @Operation(summary = "회원가입 이메일 인증번호 발송", description = "입력한 이메일로 6자리 인증번호를 발송합니다. 인증번호 유효시간은 5분입니다.")
     @SecurityRequirements({})
     @PostMapping("/verification-code")
     public ApiResponse<Void> sendVerificationCode(@RequestBody @Valid EmailVerificationRequest request) {
@@ -30,7 +30,7 @@ public class EmailController {
         return ApiResponse.ok("인증번호가 발송되었습니다.", null);
     }
 
-    @Operation(summary = "회원가입용 인증번호 검증")
+    @Operation(summary = "회원가입 이메일 인증번호 확인", description = "발송된 인증번호를 검증합니다. 인증 성공 시 10분간 인증 완료 상태가 유지되며, 이 시간 안에 회원가입을 완료해야 합니다.")
     @SecurityRequirements({})
     @PostMapping("/verification-code/verify")
     public ApiResponse<Void> verifyCode(@RequestBody @Valid EmailCodeVerifyRequest request) {
@@ -38,7 +38,7 @@ public class EmailController {
         return ApiResponse.ok("이메일 인증이 완료되었습니다.", null);
     }
 
-    @Operation(summary = "비밀번호 재설정용 인증번호 발송")
+    @Operation(summary = "비밀번호 재설정 인증번호 발송", description = "가입된 이메일로 비밀번호 재설정용 인증번호를 발송합니다. 가입되지 않은 이메일은 오류를 반환합니다. 인증번호 유효시간은 5분입니다.")
     @SecurityRequirements({})
     @PostMapping("/password-reset-code")
     public ApiResponse<Void> sendPasswordResetCode(@RequestBody @Valid EmailVerificationRequest request) {
@@ -46,7 +46,7 @@ public class EmailController {
         return ApiResponse.ok("인증번호가 발송되었습니다.", null);
     }
 
-    @Operation(summary = "비밀번호 재설정용 인증번호 검증")
+    @Operation(summary = "비밀번호 재설정 인증번호 확인", description = "발송된 인증번호를 검증합니다. 인증 성공 시 10분간 인증 완료 상태가 유지되며, 이 시간 안에 비밀번호 재설정을 완료해야 합니다.")
     @SecurityRequirements({})
     @PostMapping("/password-reset-code/verify")
     public ApiResponse<Void> verifyPasswordResetCode(@RequestBody @Valid EmailCodeVerifyRequest request) {
