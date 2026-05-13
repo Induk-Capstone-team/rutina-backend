@@ -1,5 +1,6 @@
 package com.rutina.rutinabackend.domain.user.service;
 
+import com.rutina.rutinabackend.domain.email.service.EmailVerificationService;
 import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.user.entity.User;
@@ -20,6 +21,7 @@ public class AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final EmailVerificationService emailVerificationService;
 
     // ── 회원가입 ───────────────────────────────────────────
     @Transactional
@@ -30,11 +32,17 @@ public class AuthService {
             throw ErrorCode.DUPLICATE_EMAIL.toException();
         }
 
+        // 이메일 인증 완료 확인
+        emailVerificationService.checkVerified(request.email());
+
         // 비밀번호 bcrypt 해시
         String encodedPassword = passwordEncoder.encode(request.password());
 
         User user = User.createLocal(request.email(), encodedPassword, request.nickname());
         userRepository.save(user);
+
+        // 이메일 인증 삭제
+        emailVerificationService.clearVerified(request.email());
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());

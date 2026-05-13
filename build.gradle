@@ -55,6 +55,10 @@ dependencies {
     // ── Cache (Redis) ─────────────────────────────────────
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // ── Email ─────────────────────────────────────────────
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
     // ── AI ────────────────────────────────────────────────
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 

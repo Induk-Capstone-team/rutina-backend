@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이메일 인증 — Rutina</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f8;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f4f8;padding:48px 0;">
+  <tr>
+    <td align="center" style="padding:0 16px;">
+      <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 12px rgba(0,0,0,0.07);">
+
+        <!-- LOGO -->
+        <tr>
+          <td style="padding:36px 40px 28px;">
+            <img src="https://rutina.co.kr/images/logo.png"
+                 width="134" height="61" alt="Rutina"
+                 style="display:block;border:0;">
+          </td>
+        </tr>
+
+        <!-- DIVIDER -->
+        <tr>
+          <td style="padding:0 40px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="border-top:1px solid #eef0f6;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- TITLE + DESC -->
+        <tr>
+          <td style="padding:32px 40px 0;">
+            <h1 style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#111827;line-height:1.3;">이메일 인증</h1>
+            <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#6b7280;line-height:1.75;">
+              아래 인증번호를 입력해 이메일 인증을 완료해주세요.
+            </p>
+          </td>
+        </tr>
+
+        <!-- CODE BOX -->
+        <tr>
+          <td style="padding:28px 40px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background:#f5f7fb;border-radius:12px;padding:32px 20px;text-align:center;">
+                  <span th:text="${code}" style="display:block;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:52px;font-weight:700;color:#1c2f6b;letter-spacing:14px;line-height:1;">123456</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- NOTICE -->
+        <tr>
+          <td style="padding:0 40px 36px;">
+            <p style="margin:0 0 5px;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#6b7280;line-height:1.7;">
+              이 인증번호는 <strong th:text="${minutes}" style="color:#1c2f6b;">5</strong>분간 유효합니다.
+            </p>
+            <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#6b7280;line-height:1.7;">
+              본인이 요청하지 않은 경우 이 이메일을 무시해주세요.
+            </p>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="padding:20px 40px 28px;border-top:1px solid #f0f2f8;">
+            <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:11.5px;color:#c9d0dc;line-height:1.7;">
+              © 2026 Rutina &nbsp;·&nbsp; 이 메일은 발신 전용입니다.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

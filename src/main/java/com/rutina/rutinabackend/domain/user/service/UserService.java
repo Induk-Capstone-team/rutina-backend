@@ -1,5 +1,6 @@
 package com.rutina.rutinabackend.domain.user.service;
 
+import com.rutina.rutinabackend.domain.email.service.EmailVerificationService;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional(readOnly = true)
     public UserResponse getMe(Long userId) {
@@ -71,5 +73,17 @@ public class UserService {
                 .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
         user.updateProfile(request.job(), request.age(), request.gender());
         return UserResponse.from(user);
+    }
+
+    @Transactional
+    public void resetPassword(String email, String newPassword) {
+        emailVerificationService.checkPasswordResetVerified(email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+
+        user.changePassword(passwordEncoder.encode(newPassword));
+
+        emailVerificationService.clearPasswordResetVerified(email);
     }
 }
