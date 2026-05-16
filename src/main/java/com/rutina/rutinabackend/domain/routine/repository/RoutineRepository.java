@@ -16,6 +16,10 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
     // 전체 목록 조회
     List<Routine> findByUserId(Long userId);
 
+    // 히트맵 응답에 카테고리 색상 정보가 필요하므로 category를 함께 조회
+    @Query("SELECT r FROM Routine r LEFT JOIN FETCH r.category WHERE r.user.id = :userId")
+    List<Routine> findByUserIdWithCategory(@Param("userId") Long userId);
+
     // 카테고리별 조회
     List<Routine> findByUserIdAndCategoryId(Long userId, Long categoryId);
 

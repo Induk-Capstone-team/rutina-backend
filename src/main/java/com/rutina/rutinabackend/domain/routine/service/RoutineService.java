@@ -17,13 +17,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -147,6 +151,35 @@ public class RoutineService {
                 .collect(Collectors.toList());
     }
 
+    // 연간 히트맵: 완료 기록이 있는 날짜만 true로 표시
+    public List<RoutineHeatmapResponse> getYearHeatmap(Long userId, int year) {
+        LocalDate startDate = LocalDate.of(year, 1, 1);
+        LocalDate endDate = LocalDate.of(year, 12, 31);
+
+        return getHeatmap(userId, startDate, endDate, LocalDate::toString);
+    }
+
+    // 월간 히트맵: 완료 기록이 있는 일자만 true로 표시
+    public List<RoutineHeatmapResponse> getMonthHeatmap(Long userId, int year, int month) {
+        if (month < 1 || month > 12) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "ROUTINE_400", "월은 1부터 12 사이여야 합니다.");
+        }
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+
+        return getHeatmap(userId, startDate, endDate, date -> String.valueOf(date.getDayOfMonth()));
+    }
+
+    // 주간 히트맵: 기준 날짜가 포함된 일~토 7일 중 완료 기록이 있는 날짜만 true로 표시
+    public List<RoutineHeatmapResponse> getWeekHeatmap(Long userId, LocalDate date) {
+        LocalDate startDate = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.SUNDAY));
+        LocalDate endDate = startDate.plusDays(6);
+
+        return getHeatmap(userId, startDate, endDate, LocalDate::toString);
+    }
+
     // ── 루틴 수정 ─────────────────────────────────────────────────
     @Transactional
     public RoutineResponse updateRoutine(Long userId, Long routineId, RoutineUpdateRequest request) {
@@ -197,6 +230,45 @@ public class RoutineService {
     public void deleteRoutine(Long userId, Long routineId) {
         Routine routine = findRoutine(userId, routineId);
         routineRepository.delete(routine);
+    }
+
+    // 루틴별 완료 기록을 조회 기간에 맞는 키(날짜 또는 일자)로 묶어 응답 생성
+    private List<RoutineHeatmapResponse> getHeatmap(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            Function<LocalDate, String> keyExtractor
+    ) {
+        List<Routine> routines = routineRepository.findByUserIdWithCategory(userId);
+        if (routines.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> routineIds = routines.stream()
+                .map(Routine::getId)
+                .toList();
+
+        // 같은 날짜에 완료 기록이 여러 개여도 true 하나만 유지
+        Map<Long, Map<String, Boolean>> completedMap = dailyTargetRepository
+                .findByRoutineIdInAndTargetDateBetweenAndIsCompletedTrue(routineIds, startDate, endDate)
+                .stream()
+                .sorted(Comparator.comparing(DailyTarget::getTargetDate))
+                .collect(Collectors.groupingBy(
+                        dailyTarget -> dailyTarget.getRoutine().getId(),
+                        Collectors.toMap(
+                                dailyTarget -> keyExtractor.apply(dailyTarget.getTargetDate()),
+                                dailyTarget -> true,
+                                (first, second) -> true,
+                                LinkedHashMap::new
+                        )
+                ));
+
+        return routines.stream()
+                .map(routine -> RoutineHeatmapResponse.from(
+                        routine,
+                        completedMap.getOrDefault(routine.getId(), Map.of())
+                ))
+                .toList();
     }
 
     // ── 시간 겹침 검사 ─────────────────────────────────────────────
