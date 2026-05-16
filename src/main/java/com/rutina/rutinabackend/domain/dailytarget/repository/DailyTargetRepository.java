@@ -13,4 +13,11 @@ public interface DailyTargetRepository extends JpaRepository<DailyTarget, Long> 
     List<DailyTarget> findByRoutineId(Long routineId);
     Optional<DailyTarget> findByRoutineIdAndTargetDate(Long routineId, LocalDate targetDate);
     List<DailyTarget> findByRoutineIdInAndTargetDate(List<Long> routineIds, LocalDate targetDate);
+
+    // 여러 루틴의 기간 내 완료된 기록만 조회
+    List<DailyTarget> findByRoutineIdInAndTargetDateBetweenAndIsCompletedTrue(
+            List<Long> routineIds,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 }
