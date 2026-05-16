@@ -17,10 +17,12 @@ public class AiLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 탈퇴 처리 시 레코드 자체는 보존하고 user_id만 null로 익명화 (개인정보 분리 정책)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
+    // 루틴 삭제 전 routine_id를 null로 익명화하여 AI 로그 이력 보존
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "routine_id")
     private Routine routine;

@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -85,5 +86,18 @@ public class UserController {
     public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         userService.resetPassword(request.email(), request.newPassword());
         return ApiResponse.ok("비밀번호가 재설정되었습니다.", null);
+    }
+
+    @Operation(
+            summary = "계정 탈퇴",
+            description = "로컬/소셜 계정 모두 즉시 탈퇴됩니다. 루틴, 카테고리, 완료 기록이 모두 삭제됩니다."
+    )
+    @DeleteMapping("/me")
+    public ApiResponse<Void> withdraw(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        userService.withdrawUser(userId);
+        return ApiResponse.ok("계정이 삭제되었습니다.", null);
     }
 }

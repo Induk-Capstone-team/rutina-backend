@@ -30,4 +30,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     // 수정 시 자기 자신 제외 이름 중복 체크
     boolean existsByUser_IdAndNameAndIdNot(Long userId, String name, Long categoryId);
+
+    void deleteAllByUser_Id(Long userId);
 }

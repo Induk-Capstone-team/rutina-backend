@@ -46,4 +46,9 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
     long countByUserIdAndCategoryId(Long userId, Long categoryId);
 
     void deleteByUserIdAndCategoryId(Long userId, Long categoryId);
+
+    @Query("SELECT r.id FROM Routine r WHERE r.user.id = :userId")
+    List<Long> findIdsByUserId(@Param("userId") Long userId);
+
+    void deleteAllByUserId(Long userId);
 }

@@ -7,4 +7,5 @@ public interface RefreshTokenStore {
     Optional<Long> findUserIdByToken(String token);
     void deleteByUserIdAndDevice(Long userId, String device);
     void deleteByToken(String token);
+    void deleteAllByUserId(Long userId);
 }

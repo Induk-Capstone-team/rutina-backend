@@ -47,4 +47,9 @@ public class DbRefreshTokenStore implements RefreshTokenStore {
         refreshTokenRepository.findByTokenValue(token)
                 .ifPresent(refreshTokenRepository::delete);
     }
+
+    @Override
+    public void deleteAllByUserId(Long userId) {
+        refreshTokenRepository.deleteAllByUserId(userId);
+    }
 }

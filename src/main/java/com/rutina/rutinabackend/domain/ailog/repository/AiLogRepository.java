@@ -3,6 +3,9 @@ package com.rutina.rutinabackend.domain.ailog.repository;
 import com.rutina.rutinabackend.domain.ailog.entity.AiLog;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
@@ -23,4 +26,14 @@ public interface AiLogRepository extends JpaRepository<AiLog, Long> {
             OffsetDateTime start,
             OffsetDateTime end
     );
+
+    // 루틴 삭제 전 먼저 호출 필수
+    @Modifying
+    @Query("UPDATE AiLog a SET a.routine = null WHERE a.routine.id IN :routineIds")
+    void anonymizeByRoutineIds(@Param("routineIds") List<Long> routineIds);
+
+    // 유저 삭제 전 먼저 호출 필수
+    @Modifying
+    @Query("UPDATE AiLog a SET a.user = null WHERE a.user.id = :userId")
+    void anonymizeByUserId(@Param("userId") Long userId);
 }

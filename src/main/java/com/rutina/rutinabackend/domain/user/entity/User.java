@@ -97,4 +97,10 @@ public class User {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    // 실제 레코드 삭제가 아닌 deleted_at 시각 기록
+    public void softDelete() {
+        this.deletedAt = OffsetDateTime.now();
+        this.updatedAt = OffsetDateTime.now();
+    }
+
 }
