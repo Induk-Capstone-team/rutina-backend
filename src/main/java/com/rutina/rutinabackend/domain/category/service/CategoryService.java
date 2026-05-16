@@ -106,11 +106,29 @@ public class CategoryService {
             throw new BusinessException(HttpStatus.CONFLICT, "CATEGORY_409", "이미 같은 이름의 카테고리가 존재합니다.");
         }
 
-        category.update(
-                categoryName,
-                request.getColorCode(),
-                request.getHidden()
-        );
+        Boolean currentHidden = category.getHidden();
+        Boolean nextHidden = request.getHidden();
+
+        // hidden=true였던 카테고리를 hidden=false로 바꾸는 경우만 맨 뒤로 이동
+        if (Boolean.TRUE.equals(currentHidden) && Boolean.FALSE.equals(nextHidden)) {
+            int lastSortOrder = categoryRepository.findTopByUser_IdAndHiddenFalseOrderBySortOrderDescIdDesc(userId)
+                    .map(Category::getSortOrder)
+                    .orElse(-1);
+
+            category.update(
+                    categoryName,
+                    request.getColorCode(),
+                    false
+            );
+
+            category.updateSortOrder(lastSortOrder + 1);
+        } else {
+            category.update(
+                    categoryName,
+                    request.getColorCode(),
+                    nextHidden
+            );
+        }
 
         return CategoryResponse.from(category);
     }
@@ -120,7 +138,7 @@ public class CategoryService {
     // 그 순서대로 sortOrder를 다시 저장
     @Transactional
     public void updateCategoryOrder(Long userId, CategoryOrderUpdateRequest request) {
-        List<Category> categories = categoryRepository.findAllByUser_IdOrderBySortOrderAscIdAsc(userId);
+        List<Category> categories = categoryRepository.findAllByUser_IdAndHiddenFalseOrderBySortOrderAscIdAsc(userId);
         List<Long> requestIds = request.getCategoryIds();
 
         // 사용자의 전체 카테고리 개수와 요청 개수가 다르면 잘못된 요청
