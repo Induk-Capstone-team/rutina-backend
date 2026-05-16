@@ -22,6 +22,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     // 내 카테고리 단건 조회
     Optional<Category> findByIdAndUser_Id(Long categoryId, Long userId);
 
+    // 숨김 해제 시 보이는 카테고리 중 가장 마지막 순서 조회
+    Optional<Category> findTopByUser_IdAndHiddenFalseOrderBySortOrderDescIdDesc(Long userId);
+
     // 생성 시 이름 중복 체크
     boolean existsByUser_IdAndName(Long userId, String name);
 
