@@ -101,6 +101,18 @@ public class RoutineController {
         return ApiResponse.ok("루틴별 월간 완료 히트맵 조회에 성공했습니다.", response);
     }
 
+    @Operation(summary = "루틴별 주간 완료 히트맵 조회")
+    @GetMapping("/heatmap/week")
+    public ApiResponse<List<RoutineHeatmapResponse>> getWeekHeatmap(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        List<RoutineHeatmapResponse> response = routineService.getWeekHeatmap(userId, date);
+        return ApiResponse.ok("루틴별 주간 완료 히트맵 조회에 성공했습니다.", response);
+    }
+
     @Operation(summary = "루틴 단건 조회")
     @GetMapping("/{routineId}")
     public ApiResponse<RoutineResponse> getRoutine(
