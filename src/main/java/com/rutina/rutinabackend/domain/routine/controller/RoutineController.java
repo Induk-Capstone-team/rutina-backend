@@ -1,6 +1,7 @@
 package com.rutina.rutinabackend.domain.routine.controller;
 
 import com.rutina.rutinabackend.domain.routine.dto.RoutineCreateRequest;
+import com.rutina.rutinabackend.domain.routine.dto.RoutineHeatmapResponse;
 import com.rutina.rutinabackend.domain.routine.dto.RoutineResponse;
 import com.rutina.rutinabackend.domain.routine.dto.RoutineTimetableResponse;
 import com.rutina.rutinabackend.domain.routine.dto.RoutineUpdateRequest;
@@ -14,7 +15,16 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -48,7 +58,6 @@ public class RoutineController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        // categoryId, date 모두 optional이며 4가지 조합(null/null, null/값, 값/null, 값/값) 모두 동작
         Long userId = Long.parseLong(userDetails.getUsername());
 
         List<RoutineResponse> response = routineService.getRoutines(userId, categoryId, date);
@@ -61,11 +70,35 @@ public class RoutineController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        // date는 required=true(기본값)이므로 미전송 시 Spring이 자동으로 400 반환
         Long userId = Long.parseLong(userDetails.getUsername());
 
         List<RoutineTimetableResponse> response = routineService.getTimetable(userId, date);
         return ApiResponse.ok("타임테이블 조회에 성공했습니다.", response);
+    }
+
+    @Operation(summary = "루틴별 연간 완료 히트맵 조회")
+    @GetMapping("/heatmap/year")
+    public ApiResponse<List<RoutineHeatmapResponse>> getYearHeatmap(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam int year
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        List<RoutineHeatmapResponse> response = routineService.getYearHeatmap(userId, year);
+        return ApiResponse.ok("루틴별 연간 완료 히트맵 조회에 성공했습니다.", response);
+    }
+
+    @Operation(summary = "루틴별 월간 완료 히트맵 조회")
+    @GetMapping("/heatmap/month")
+    public ApiResponse<List<RoutineHeatmapResponse>> getMonthHeatmap(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        List<RoutineHeatmapResponse> response = routineService.getMonthHeatmap(userId, year, month);
+        return ApiResponse.ok("루틴별 월간 완료 히트맵 조회에 성공했습니다.", response);
     }
 
     @Operation(summary = "루틴 단건 조회")
@@ -74,7 +107,6 @@ public class RoutineController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long routineId
     ) {
-        // path variable로 받은 routineId와 로그인 userId를 함께 사용해서 본인 루틴만 조회 가능하도록 처리
         Long userId = Long.parseLong(userDetails.getUsername());
 
         RoutineResponse response = routineService.getRoutine(userId, routineId);
