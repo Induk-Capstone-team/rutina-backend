@@ -66,6 +66,21 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
         redisTemplate.delete(TOKEN_KEY_PREFIX + token);
     }
 
+    @Override
+    public void deleteAllByUserId(Long userId) {
+        String pattern = DEVICE_KEY_PREFIX + userId + ":*";
+        Set<String> deviceKeys = redisTemplate.keys(pattern);
+        if (deviceKeys != null) {
+            deviceKeys.forEach(deviceKey -> {
+                String token = redisTemplate.opsForValue().get(deviceKey);
+                if (token != null) {
+                    redisTemplate.delete(TOKEN_KEY_PREFIX + token);
+                }
+                redisTemplate.delete(deviceKey);
+            });
+        }
+    }
+
     private String deviceKey(Long userId, String device) {
         return DEVICE_KEY_PREFIX + userId + ":" + device;
     }

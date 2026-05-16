@@ -50,4 +50,16 @@ public class InMemoryRefreshTokenStore implements RefreshTokenStore {
             userDeviceToToken.entrySet().removeIf(e -> e.getValue().equals(token));
         }
     }
+
+    @Override
+    public void deleteAllByUserId(Long userId) {
+        String prefix = userId + ":";
+        userDeviceToToken.entrySet().removeIf(e -> {
+            if (e.getKey().startsWith(prefix)) {
+                tokenToUser.remove(e.getValue());
+                return true;
+            }
+            return false;
+        });
+    }
 }
