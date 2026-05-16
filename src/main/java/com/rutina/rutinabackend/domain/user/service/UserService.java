@@ -1,6 +1,9 @@
 package com.rutina.rutinabackend.domain.user.service;
 
+import com.rutina.rutinabackend.domain.ailog.repository.AiLogRepository;
+import com.rutina.rutinabackend.domain.category.repository.CategoryRepository;
 import com.rutina.rutinabackend.domain.email.service.EmailVerificationService;
+import com.rutina.rutinabackend.domain.routine.repository.RoutineRepository;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
@@ -8,11 +11,14 @@ import com.rutina.rutinabackend.domain.user.dto.UserProfileUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.UserResponse;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
+import com.rutina.rutinabackend.global.auth.token.RefreshTokenStore;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +27,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final RoutineRepository routineRepository;
+    private final CategoryRepository categoryRepository;
+    private final AiLogRepository aiLogRepository;
+    private final RefreshTokenStore refreshTokenStore;
 
     @Transactional(readOnly = true)
     public UserResponse getMe(Long userId) {
@@ -85,5 +95,32 @@ public class UserService {
         user.changePassword(passwordEncoder.encode(newPassword));
 
         emailVerificationService.clearPasswordResetVerified(email);
+    }
+
+    @Transactional
+    public void withdrawUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+
+        // ai_logs.routine_id → null (루틴 삭제 전)
+        List<Long> routineIds = routineRepository.findIdsByUserId(userId);
+        if (!routineIds.isEmpty()) {
+            aiLogRepository.anonymizeByRoutineIds(routineIds);
+        }
+
+        // ai_logs.user_id → null (유저 삭제 전)
+        aiLogRepository.anonymizeByUserId(userId);
+
+        // routines 삭제 (daily_targets는 CASCADE로 자동 삭제)
+        routineRepository.deleteAllByUserId(userId);
+
+        // categories 삭제
+        categoryRepository.deleteAllByUser_Id(userId);
+
+        // refresh token 삭제
+        refreshTokenStore.deleteAllByUserId(userId);
+
+        // user soft delete (users 레코드는 7일 보관 후 스케줄러가 완전 삭제)
+        user.softDelete();
     }
 }
