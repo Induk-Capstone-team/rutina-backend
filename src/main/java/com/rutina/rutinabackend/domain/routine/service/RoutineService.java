@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -169,6 +170,14 @@ public class RoutineService {
         LocalDate endDate = yearMonth.atEndOfMonth();
 
         return getHeatmap(userId, startDate, endDate, date -> String.valueOf(date.getDayOfMonth()));
+    }
+
+    // 주간 히트맵: 기준 날짜가 포함된 일~토 7일 중 완료 기록이 있는 날짜만 true로 표시
+    public List<RoutineHeatmapResponse> getWeekHeatmap(Long userId, LocalDate date) {
+        LocalDate startDate = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.SUNDAY));
+        LocalDate endDate = startDate.plusDays(6);
+
+        return getHeatmap(userId, startDate, endDate, LocalDate::toString);
     }
 
     // ── 루틴 수정 ─────────────────────────────────────────────────
