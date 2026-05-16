@@ -27,10 +27,14 @@ public class AuthService {
     @Transactional
     public LoginResponse signUp(SignUpRequest request, String device) {
 
-        // 이메일 중복 확인
-        if (userRepository.existsByEmail(request.email())) {
+        // 탈퇴 후 7일 보관 중인 계정은 조회하지 못함.
+        userRepository.findByEmailIncludingDeleted(request.email()).ifPresent(existing -> {
+            if (existing.getDeletedAt() != null) {
+                // 탈퇴한 계정 — 7일 보관 중
+                throw ErrorCode.WITHDRAWN_USER.toException();
+            }
             throw ErrorCode.DUPLICATE_EMAIL.toException();
-        }
+        });
 
         // 이메일 인증 완료 확인
         emailVerificationService.checkVerified(request.email());
