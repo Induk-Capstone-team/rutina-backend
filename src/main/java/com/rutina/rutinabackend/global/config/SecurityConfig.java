@@ -4,6 +4,7 @@ import com.rutina.rutinabackend.global.jwt.JwtAuthenticationFilter;
 import com.rutina.rutinabackend.global.oauth2.CustomOAuth2UserService;
 import com.rutina.rutinabackend.global.oauth2.OAuth2FailureHandler;
 import com.rutina.rutinabackend.global.oauth2.OAuth2SuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,6 +52,33 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .anyRequest().authenticated()
+                )
+                // 인증/인가 예외 처리 추가
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // 인증 실패 (401)
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("""
+                            {
+                                "success": false,
+                                "message": "인증이 필요합니다.",
+                                "code": "UNAUTHORIZED"
+                            }
+                            """);
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            // 권한 없음 (403)
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("""
+                            {
+                                "success": false,
+                                "message": "접근 권한이 없습니다.",
+                                "code": "FORBIDDEN"
+                            }
+                            """);
+                        })
                 )
                 // OAuth2 소셜 로그인 설정
                 .oauth2Login(oauth2 -> oauth2
