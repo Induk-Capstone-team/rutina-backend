@@ -45,6 +45,17 @@ public class AuthController {
         return ApiResponse.ok("로그인에 성공했습니다.", response);
     }
 
+    @Operation(summary = "Apple 로그인")
+    @SecurityRequirements({})
+    @PostMapping("/apple")
+    public ApiResponse<LoginResponse> appleLogin(@RequestBody @Valid AppleLoginRequest request,
+                                                 HttpServletRequest httpRequest) {
+        // React Native 앱에서 받은 Apple identityToken을 검증하고 기존 JWT 응답 형식으로 반환합니다.
+        String device = httpRequest.getHeader("User-Agent");
+        LoginResponse response = authService.loginWithApple(request, device);
+        return ApiResponse.ok("Apple 로그인에 성공했습니다.", response);
+    }
+
     @Operation(summary = "토큰 재발급")
     @SecurityRequirements({})
     @PostMapping("/reissue")

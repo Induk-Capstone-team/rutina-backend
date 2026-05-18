@@ -20,6 +20,8 @@ public enum ErrorCode {
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "AUTH_009", "인증번호가 올바르지 않거나 만료되었습니다."),
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH_010", "이메일 발송에 실패했습니다."),
     WITHDRAWN_USER(HttpStatus.FORBIDDEN, "AUTH_013", "탈퇴한 계정입니다. 7일 후 재가입이 가능합니다."),
+    INVALID_APPLE_IDENTITY_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_014", "유효하지 않은 Apple identity token입니다."),
+    SOCIAL_ACCOUNT_CONFLICT(HttpStatus.CONFLICT, "AUTH_015", "이미 다른 로그인 방식으로 가입된 이메일입니다."),
 
     // 루틴
     ROUTINE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTINE_001", "루틴을 찾을 수 없습니다."),
