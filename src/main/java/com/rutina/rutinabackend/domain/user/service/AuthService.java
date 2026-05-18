@@ -5,13 +5,16 @@ import com.rutina.rutinabackend.domain.refreshToken.dto.TokenRefreshRequest;
 import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
+import com.rutina.rutinabackend.global.auth.apple.AppleIdentityTokenVerifier;
 import com.rutina.rutinabackend.global.auth.token.RefreshTokenStore;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
 import com.rutina.rutinabackend.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final EmailVerificationService emailVerificationService;
+    private final AppleIdentityTokenVerifier appleIdentityTokenVerifier;
 
     // ── 회원가입 ───────────────────────────────────────────
     @Transactional
@@ -113,5 +117,67 @@ public class AuthService {
     @Transactional(readOnly = true)
     public boolean checkEmailDuplicate(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Transactional
+    public LoginResponse loginWithApple(AppleLoginRequest request, String device) {
+        // Apple identityToken의 서명, 발급자, 대상 앱(Bundle ID)을 검증합니다.
+        Jwt appleToken = appleIdentityTokenVerifier.verify(request.identityToken());
+        String providerId = appleToken.getSubject();
+
+        // Apple의 고유 사용자 식별자(sub)를 providerId로 사용해 기존 계정을 찾습니다.
+        User user = userRepository.findByProviderAndProviderId("APPLE", providerId)
+                .orElseGet(() -> createAppleUser(request, appleToken, providerId));
+
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
+
+        refreshTokenStore.save(user.getId(), device, refreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
+
+        return LoginResponse.of(accessToken, refreshToken);
+    }
+
+    private User createAppleUser(AppleLoginRequest request, Jwt appleToken, String providerId) {
+        String email = resolveAppleEmail(request, appleToken, providerId);
+
+        // 탈퇴 보관 계정과 기존 이메일 계정은 Apple 신규 가입으로 덮어쓰지 않습니다.
+        userRepository.findByEmailIncludingDeleted(email).ifPresent(existing -> {
+            if (existing.getDeletedAt() != null) {
+                throw ErrorCode.WITHDRAWN_USER.toException();
+            }
+            throw ErrorCode.SOCIAL_ACCOUNT_CONFLICT.toException();
+        });
+
+        String nickname = resolveAppleNickname(request, email);
+        User user = User.createOAuth(email, nickname, "APPLE", providerId);
+        return userRepository.save(user);
+    }
+
+    private String resolveAppleEmail(AppleLoginRequest request, Jwt appleToken, String providerId) {
+        // Apple email/name은 최초 로그인 때만 내려올 수 있어 앱에서 전달한 값을 우선 사용합니다.
+        if (StringUtils.hasText(request.email())) {
+            return request.email();
+        }
+
+        String tokenEmail = appleToken.getClaimAsString("email");
+        if (StringUtils.hasText(tokenEmail)) {
+            return tokenEmail;
+        }
+
+        return "apple_" + providerId + "@social.local";
+    }
+
+    private String resolveAppleNickname(AppleLoginRequest request, String email) {
+        // 이름을 받지 못한 경우 이메일 앞부분을 기본 닉네임으로 사용합니다.
+        if (StringUtils.hasText(request.nickname())) {
+            return request.nickname();
+        }
+
+        int atIndex = email.indexOf('@');
+        if (atIndex > 0) {
+            return email.substring(0, atIndex);
+        }
+
+        return "Apple User";
     }
 }
