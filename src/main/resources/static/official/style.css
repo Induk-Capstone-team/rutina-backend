@@ -123,20 +123,20 @@ h1, h2, h3, p { margin: 0; }
 .bottom-nav i { width: 19px; height: 15px; border-radius: 3px; background: #9fa6b2; opacity: 0.65; }
 .bottom-nav div:first-child { color: var(--blue); }
 .bottom-nav div:first-child i { background: var(--blue); opacity: 1; }
-
+.phone-real-screen{padding:0;overflow:hidden}
+.phone-screenshot{display:block;width:100%;height:100%;object-fit:cover;border-radius:31px}
 
 /* =========================================================
    07. 히어로 보조 플로팅 카드
    - 히트맵 카드, 문의 메일 카드처럼 휴대폰 주변에 떠 있는 요소
    ========================================================= */
-
-.heat-card { position: absolute; left: 0; bottom: 26px; width: 278px; border-radius: 25px; padding: 18px; }
+.heat-card{position:absolute;left:-54px;bottom:26px;width:392px;border-radius:25px;padding:18px}
+.heat-grid{display:grid;grid-template-rows:repeat(7,5px);grid-auto-flow:column;grid-auto-columns:5px;gap:2px}
+.heat-grid i{width:5px;height:5px;border-radius:2px;background:#edf0f5;border:1px solid #dde3ec}
+.heat-grid i.on{background:var(--mint);border-color:var(--mint);opacity:0;transform:scale(0.35);animation:heatFill 0.34s ease forwards,heatBlink 3.6s ease-in-out infinite;animation-delay:var(--heat-delay,0s),calc(var(--heat-delay,0s) + 0.7s)}
 .heat-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
 .heat-title strong { font-size: 17px; letter-spacing: -0.04em; }
 .heat-title span { font-size: 12px; color: var(--accent); font-weight: 900; }
-.heat-grid { display: grid; grid-template-columns: repeat(18, 1fr); gap: 3px; }
-.heat-grid i { aspect-ratio: 1; border-radius: 2px; background: #edf0f5; border: 1px solid #dde3ec; }
-.heat-grid i.on { background: var(--mint); border-color: var(--mint); }
 .floating-mail { position: absolute; right: 10px; top: 58px; width: 210px; border-radius: 22px; padding: 16px; }
 .floating-mail strong { display: block; font-size: 15px; margin-bottom: 6px; }
 .floating-mail p { color: var(--muted); font-size: 12px; line-height: 1.5; }
@@ -376,8 +376,11 @@ section { padding: 72px 0; }
     color: var(--accent);
 }
 
-.heat-grid i.on {
-    animation: heatBlink 3.6s ease-in-out infinite;
+.heat-grid i.on{
+    opacity:0;
+    transform:scale(0.35);
+    animation:heatFill 0.34s ease forwards, heatBlink 3.6s ease-in-out infinite;
+    animation-delay:var(--heat-delay, 0s), calc(var(--heat-delay, 0s) + 0.7s);
 }
 
 .card,
@@ -576,7 +579,20 @@ section { padding: 72px 0; }
     }
 }
 
-
+@keyframes heatFill {
+    0% {
+        opacity:0;
+        transform:scale(0.35);
+    }
+    70% {
+        opacity:1;
+        transform:scale(1.18);
+    }
+    100% {
+        opacity:1;
+        transform:scale(1);
+    }
+}
 /* =========================================================
    19. 접근성: 모션 감소 설정 대응
    - 사용자가 모션 줄이기를 켠 경우 애니메이션을 최소화
@@ -691,3 +707,12 @@ section { padding: 72px 0; }
 /* 앱 투어 섹션 반응형 처리 */
 @media(max-width:980px){.tour-wrap{grid-template-columns:1fr}.tour-phone{width:min(310px,100%)}}
 @media(max-width:560px){.tour-wrap{padding:24px 18px}.tour-phone{height:570px}.tour-item{grid-template-columns:46px 1fr;padding:15px}.tour-item b{width:38px;height:38px}.tour-item span{font-size:16px}}
+
+/* 앱 투어 섹션 이미지 처리 */
+.tour-screen{padding:0;overflow:hidden}
+.tour-status{display:none}
+.tour-content{height:100%}
+.tour-screenshot{display:block;width:100%;height:100%;object-fit:contain;border-radius:32px;background:#f8f9fc}
+.tour-empty{height:100%;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:24px 20px}
+.tour-empty strong{font-size:26px;line-height:1.25;letter-spacing:-0.055em;color:var(--text)}
+.tour-empty p{color:var(--text2);font-size:14px;line-height:1.65;margin-bottom:10px}
