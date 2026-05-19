@@ -9,10 +9,7 @@ public class OfficialPageConfig implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/official")
-                .setViewName("forward:/official/index.html");
-
-        registry.addViewController("/official/")
+        registry.addViewController("/")
                 .setViewName("forward:/official/index.html");
     }
 }
