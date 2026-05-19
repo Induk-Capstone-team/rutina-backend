@@ -48,11 +48,16 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         User user;
         if (isNewUser) {
             // 동일 이메일 계정 존재 시 예외 처리
-            if (userRepository.existsByEmail(email)) {
-                throw oauth2Error("An account with the same email already exists");
-            }
+            // 로컬 회원가입과 동일하게 탈퇴 계정의 재가입 제한을 적용합니다.
+            userRepository.findByEmailIncludingDeleted(email).ifPresent(existing -> {
+                if (existing.getDeletedAt() != null) {
+                    throw oauth2Error("탈퇴한 계정은 7일 동안 재가입할 수 없습니다.");
+                }
+                throw oauth2Error("이미 사용 중인 이메일입니다.");
+            });
+
             if (isBlank(userInfo.getNickname())) {
-                throw oauth2Error("OAuth2 nickname is required");
+                throw oauth2Error("소셜 계정의 닉네임 정보가 필요합니다.");
             }
             user = userRepository.save(
                     User.createOAuth(
