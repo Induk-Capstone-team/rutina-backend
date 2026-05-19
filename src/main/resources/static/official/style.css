@@ -1,0 +1,718 @@
+/* =========================================================
+   01. 디자인 변수
+   - 사이트 전체에서 사용하는 색상, 그림자, 반경, 최대 폭 변수
+   - 실제 색상값이나 수치는 변경하지 않음
+   ========================================================= */
+
+:root {
+    --bg: #f7f8fb;
+    --paper: #ffffff;
+    --card: #ffffff;
+    --soft: #f2f4f9;
+    --soft2: #edf1f7;
+    --line: #e7eaf1;
+    --text: #1f3358;
+    --text2: #51617d;
+    --muted: #9ba5b8;
+    --accent: #385989;
+    --accent2: #2d4a78;
+    --blue: #0098c9;
+    --mint: #19d7bd;
+    --shadow: 0 18px 50px rgba(31, 51, 88, 0.08);
+    --radius-xl: 34px;
+    --radius-lg: 26px;
+    --radius-md: 18px;
+    --max: 1120px;
+}
+
+
+/* =========================================================
+   02. 기본 초기화 / 공통 레이아웃
+   - 브라우저 기본 여백 제거, 폰트, 링크, 컨테이너 폭 설정
+   ========================================================= */
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif; letter-spacing: -0.025em; }
+a { color: inherit; text-decoration: none; }
+button, input { font-family: inherit; }
+.container { width: min(calc(100% - 40px), var(--max)); margin: 0 auto; }
+
+
+/* =========================================================
+   03. 헤더 / 네비게이션
+   - 상단 고정 헤더, 로고 이미지, 메뉴, 우측 버튼 영역
+   ========================================================= */
+
+.site-header { position: sticky; top: 0; z-index: 40; background: rgba(247, 248, 251, 0.86); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(231, 234, 241, 0.7); }
+.nav { height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.logo { display: inline-flex; align-items: center; line-height: 0; }
+.logo-img { display: block; width: auto; height: 44px; object-fit: contain; }
+.footer .logo-img { height: 42px; }
+.menu { display: flex; align-items: center; gap: 4px; color: #778297; font-size: 14px; font-weight: 800; }
+.menu a { padding: 10px 13px; border-radius: 999px; transition: 0.18s ease; }
+.menu a:hover, .menu a.active { color: var(--accent2); background: #eef2f8; }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+
+
+/* =========================================================
+   04. 공통 버튼 / 모바일 햄버거 버튼
+   - 기본 버튼, primary/soft 버튼, 모바일 메뉴 버튼 스타일
+   ========================================================= */
+
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 17px; border-radius: 14px; border: 1px solid transparent; font-size: 14px; font-weight: 900; cursor: pointer; transition: 0.18s ease; white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 12px 24px rgba(56, 89, 137, 0.22); }
+.btn-soft { background: #eef2f8; color: var(--accent2); border-color: #e4e8f0; }
+.hamburger { display: none; width: 42px; height: 42px; border: 0; border-radius: 14px; background: #eef2f8; cursor: pointer; }
+.hamburger span { display: block; width: 18px; height: 2px; margin: 4px auto; background: var(--accent2); border-radius: 999px; }
+
+
+/* =========================================================
+   05. 메인 히어로 영역
+   - 첫 화면의 소개 문구, CTA 버튼, 안내 문구 영역
+   ========================================================= */
+
+.hero { padding: 86px 0 58px; }
+.hero-grid { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 54px; align-items: center; }
+.label { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 13px; border-radius: 999px; background: #eef2f8; color: var(--accent); font-size: 13px; font-weight: 900; margin-bottom: 18px; }
+.label::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); }
+h1, h2, h3, p { margin: 0; }
+.hero h1 { font-size: clamp(42px, 6vw, 70px); line-height: 1.08; font-weight: 950; letter-spacing: -0.07em; }
+.hero h1 span { color: var(--accent); }
+.hero-desc { max-width: 600px; margin-top: 22px; color: var(--text2); font-size: 18px; line-height: 1.75; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.hero-note { margin-top: 24px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+
+/* =========================================================
+   06. 히어로 앱 미리보기 목업
+   - 휴대폰 프레임, 캘린더 카드, 앱 상단 로고, 하단 탭 목업
+   ========================================================= */
+
+.preview-wrap { position: relative; min-height: 580px; }
+.phone { width: min(312px, 80vw); height: 600px; margin-left: auto; border-radius: 40px; background: #eff1f5; padding: 12px; box-shadow: 0 24px 70px rgba(31, 51, 88, 0.16); position: relative; overflow: hidden; }
+.phone-screen { height: 100%; border-radius: 31px; background: #f8f9fc; padding: 26px 20px 18px; overflow: hidden; }
+.app-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+.app-logo { display: flex; align-items: center; line-height: 0; }
+.app-logo-img { display: block; width: auto; height: 28px; object-fit: contain; }
+.dot-nav { display: flex; align-items: center; gap: 12px; }
+.dot-nav i { width: 5px; height: 5px; border-radius: 50%; background: #d7dce7; }
+.dot-nav i:nth-child(2) { background: var(--accent); }
+.gear { width: 18px; height: 18px; border: 2px solid var(--accent); border-radius: 50%; position: relative; }
+.gear::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #f8f9fc; }
+.calendar-card, .heat-card, .floating-mail { background: var(--paper); border: 1px solid rgba(231, 234, 241, 0.9); box-shadow: var(--shadow); }
+.calendar-card { border-radius: 25px; padding: 20px 18px; }
+.date-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.date-big { display: flex; align-items: center; gap: 10px; }
+.date-big strong { font-size: 34px; line-height: 1; }
+.date-big span { color: var(--muted); font-size: 12px; font-weight: 800; line-height: 1.2; }
+.nav-circle { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: #f2f4f9; color: #8b95a8; font-weight: 900; }
+.month-box { border-radius: 19px; background: #f6f7fb; padding: 14px; }
+.month-title { display: flex; align-items: center; justify-content: space-between; color: var(--text); font-size: 14px; font-weight: 950; margin-bottom: 14px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px 8px; text-align: center; color: var(--text); font-size: 12px; font-weight: 800; }
+.calendar-grid span.muted { color: #c5ccd8; }
+.calendar-grid span.dayname { color: #aab2c0; font-size: 11px; }
+.calendar-grid span.today { display: inline-grid; place-items: center; width: 27px; height: 27px; margin: -6px auto -5px; border-radius: 50%; background: #eef1fb; color: var(--accent); }
+.progress-line { height: 4px; border-radius: 999px; background: var(--accent); margin: 30px 4px 18px; }
+.routine-line { padding: 8px 4px 13px; border-bottom: 1px solid #edf0f5; }
+.routine-line strong { display: block; color: #8e98ab; font-size: 12px; margin-bottom: 9px; }
+.routine-line span { color: #bcc3cf; font-size: 12px; font-weight: 700; }
+.bottom-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 13px; color: #9198a6; font-size: 9px; font-weight: 800; text-align: center; }
+.bottom-nav div { display: grid; gap: 4px; justify-items: center; }
+.bottom-nav i { width: 19px; height: 15px; border-radius: 3px; background: #9fa6b2; opacity: 0.65; }
+.bottom-nav div:first-child { color: var(--blue); }
+.bottom-nav div:first-child i { background: var(--blue); opacity: 1; }
+.phone-real-screen{padding:0;overflow:hidden}
+.phone-screenshot{display:block;width:100%;height:100%;object-fit:cover;border-radius:31px}
+
+/* =========================================================
+   07. 히어로 보조 플로팅 카드
+   - 히트맵 카드, 문의 메일 카드처럼 휴대폰 주변에 떠 있는 요소
+   ========================================================= */
+.heat-card{position:absolute;left:-54px;bottom:26px;width:392px;border-radius:25px;padding:18px}
+.heat-grid{display:grid;grid-template-rows:repeat(7,5px);grid-auto-flow:column;grid-auto-columns:5px;gap:2px}
+.heat-grid i{width:5px;height:5px;border-radius:2px;background:#edf0f5;border:1px solid #dde3ec}
+.heat-grid i.on{background:var(--mint);border-color:var(--mint);opacity:0;transform:scale(0.35);animation:heatFill 0.34s ease forwards,heatBlink 3.6s ease-in-out infinite;animation-delay:var(--heat-delay,0s),calc(var(--heat-delay,0s) + 0.7s)}
+.heat-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+.heat-title strong { font-size: 17px; letter-spacing: -0.04em; }
+.heat-title span { font-size: 12px; color: var(--accent); font-weight: 900; }
+.floating-mail { position: absolute; right: 10px; top: 58px; width: 210px; border-radius: 22px; padding: 16px; }
+.floating-mail strong { display: block; font-size: 15px; margin-bottom: 6px; }
+.floating-mail p { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.floating-mail a { display: block; margin-top: 12px; color: var(--accent); font-size: 12px; font-weight: 900; }
+
+
+/* =========================================================
+   08. 공통 섹션 타이틀 / 설명
+   - 모든 주요 섹션에서 반복 사용하는 제목, 설명, 여백 구조
+   ========================================================= */
+
+section { padding: 72px 0; }
+.section-head { margin-bottom: 28px; }
+.section-head.center { max-width: 720px; margin-left: auto; margin-right: auto; text-align: center; }
+.section-kicker { color: var(--accent); font-size: 13px; font-weight: 950; margin-bottom: 9px; }
+.section-title { font-size: clamp(30px, 4.2vw, 48px); line-height: 1.18; font-weight: 950; letter-spacing: -0.06em; }
+.section-desc { margin-top: 13px; color: var(--text2); font-size: 16px; line-height: 1.75; }
+
+/* =========================================================
+   09. 핵심 기능 카드
+   - AI 추천, 카테고리, 히트맵 등 기능 소개 카드 그리드
+   ========================================================= */
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 14px 34px rgba(31, 51, 88, 0.055); }
+.card-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: #eef2f8; color: var(--accent); font-weight: 950; margin-bottom: 18px; }
+.card h3 { font-size: 20px; letter-spacing: -0.045em; margin-bottom: 10px; }
+.card p { color: var(--text2); font-size: 14px; line-height: 1.7; }
+
+
+/* =========================================================
+   10. 서비스 흐름 탭
+   - 입력, 추천, 저장, 기록 단계 전환 영역
+   ========================================================= */
+
+.process { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: 28px; box-shadow: var(--shadow); }
+.process-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+.tab { height: 46px; border: 0; border-radius: 16px; background: #f2f4f9; color: #738097; font-weight: 950; cursor: pointer; }
+.tab.active { background: var(--accent); color: #fff; }
+.panel { display: none; padding: 14px 4px 4px; }
+.panel.active { display: block; }
+.panel h3 { font-size: 26px; letter-spacing: -0.055em; margin-bottom: 10px; }
+.panel p { color: var(--text2); line-height: 1.75; max-width: 760px; }
+.panel-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.panel-list span { padding: 10px 13px; border-radius: 999px; background: #f2f4f9; color: var(--accent2); font-size: 13px; font-weight: 900; }
+
+
+/* =========================================================
+   11. 문의 이메일 카드
+   - official/contact/support/no-reply 메일 카드와 복사 버튼
+   ========================================================= */
+
+.email-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.email-card { background: var(--paper); border: 1px solid var(--line); border-radius: 24px; padding: 20px; }
+.email-card b { display: block; font-size: 19px; letter-spacing: -0.04em; margin-bottom: 7px; }
+.email-card p { color: var(--muted); font-size: 13px; line-height: 1.55; min-height: 40px; }
+.copy { width: 100%; margin-top: 16px; border: 0; border-radius: 14px; background: #f2f4f9; color: var(--accent); padding: 12px 10px; font-size: 12px; font-weight: 950; cursor: pointer; }
+.copy:hover { background: var(--accent); color: #fff; }
+
+
+/* =========================================================
+   12. 팀원 소개 영역
+   - 팀원 검색, 팀원 카드, 태그, 담당 영역, 링크 버튼
+   ========================================================= */
+
+.team-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 16px; }
+.team-search { width: min(420px, 100%); height: 46px; border-radius: 16px; border: 1px solid var(--line); background: #fff; padding: 0 15px; outline: none; color: var(--text); font-weight: 800; }
+.team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.member { background: var(--paper); border: 1px solid var(--line); border-radius: 26px; padding: 22px; box-shadow: 0 12px 30px rgba(31, 51, 88, 0.045); }
+.member.hidden { display: none; }
+.member-head { display: flex; gap: 13px; align-items: center; margin-bottom: 16px; }
+.avatar { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 18px; background: #eef2f8; color: var(--accent); font-weight: 950; }
+.member h3 { font-size: 20px; letter-spacing: -0.04em; }
+.member small { display: block; color: var(--muted); font-size: 12px; font-weight: 900; margin-top: 3px; }
+.tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+.tags span { padding: 7px 9px; border-radius: 999px; background: #f2f4f9; color: var(--accent); font-size: 12px; font-weight: 900; }
+.member p { color: var(--text2); font-size: 14px; line-height: 1.7; }
+.member-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 17px; }
+.member-links a { padding: 10px 12px; border-radius: 13px; background: #f2f4f9; color: var(--accent); font-size: 12px; font-weight: 950; }
+
+
+/* =========================================================
+   13. 프로젝트 링크 / 앱 출시 배너
+   - GitHub, PR, Swagger 링크와 앱스토어 준비 배너
+   ========================================================= */
+
+.link-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.link-card { background: var(--paper); border: 1px solid var(--line); border-radius: 26px; padding: 24px; min-height: 172px; }
+.link-card h3 { font-size: 20px; letter-spacing: -0.045em; margin-bottom: 10px; }
+.link-card p { color: var(--text2); font-size: 14px; line-height: 1.7; }
+.link-card .btn { margin-top: 18px; }
+.app-banner { background: var(--accent); color: #fff; border-radius: var(--radius-xl); padding: 34px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; box-shadow: 0 20px 54px rgba(56, 89, 137, 0.2); }
+.app-banner h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.2; letter-spacing: -0.06em; }
+.app-banner p { margin-top: 12px; color: rgba(255, 255, 255, 0.78); line-height: 1.7; }
+.store-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.store { display: inline-flex; align-items: center; justify-content: center; min-width: 154px; height: 48px; border-radius: 16px; background: #fff; color: var(--accent); font-weight: 950; }
+.store.disabled { opacity: 0.75; cursor: not-allowed; }
+
+
+/* =========================================================
+   14. 정책 문서 영역
+   - 개인정보처리방침, 회원가입약관 링크 카드
+   ========================================================= */
+
+.legal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.legal { display: flex; justify-content: space-between; gap: 16px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 24px; padding: 22px; }
+.legal b { display: block; font-size: 18px; margin-bottom: 6px; }
+.legal span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+
+/* =========================================================
+   15. 푸터
+   - 하단 로고, 저작권, 빠른 이동 링크
+   ========================================================= */
+
+.footer { padding: 44px 0 50px; border-top: 1px solid var(--line); color: var(--muted); }
+.footer-inner { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.footer p { font-size: 13px; line-height: 1.7; margin-top: 10px; }
+.footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.footer-links a { padding: 9px 11px; border-radius: 999px; background: #eef2f8; color: var(--accent); font-size: 12px; font-weight: 900; }
+
+
+/* =========================================================
+   16. 토스트 / 스크롤 등장 효과
+   - 이메일 복사 알림, reveal 애니메이션 기본 상태
+   ========================================================= */
+
+.toast { position: fixed; left: 50%; bottom: 24px; z-index: 100; transform: translate(-50%, 18px); opacity: 0; pointer-events: none; background: #1f3358; color: #fff; padding: 12px 16px; border-radius: 999px; font-size: 13px; font-weight: 900; transition: 0.22s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s ease; }
+.reveal.show { opacity: 1; transform: translateY(0); }
+
+
+
+/* =========================================================
+   17. 인터랙션 / 모션 효과
+   - 스크롤 진행바, 플로팅 애니메이션, hover 효과
+   ========================================================= */
+
+.scroll-progress {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 120;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--blue), var(--mint));
+    border-radius: 0 999px 999px 0;
+    transition: width 0.08s linear;
+}
+
+.label::before {
+    animation: calmPulse 2.4s ease-in-out infinite;
+}
+
+.phone {
+    animation: phoneFloat 7s ease-in-out infinite;
+    transform-origin: center;
+}
+
+.calendar-card {
+    animation: softLift 5.8s ease-in-out infinite;
+}
+
+.floating-mail {
+    animation: sideFloat 6.5s ease-in-out infinite;
+}
+
+.heat-card {
+    animation: sideFloat 7.2s ease-in-out infinite reverse;
+}
+
+.motion-chip {
+    position: absolute;
+    z-index: 3;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 13px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 950;
+    box-shadow: 0 12px 30px rgba(31, 51, 88, 0.08);
+    backdrop-filter: blur(12px);
+    pointer-events: none;
+    animation: chipDrift 6.2s ease-in-out infinite;
+}
+
+.chip-ai {
+    left: 42px;
+    top: 22px;
+}
+
+.chip-heat {
+    right: 0;
+    bottom: 175px;
+    animation-delay: -1.8s;
+}
+
+.chip-mail {
+    right: 28px;
+    top: 18px;
+    animation-delay: -3.2s;
+}
+
+.progress-line {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-line::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 38%;
+    height: 100%;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.52);
+    animation: progressSweep 2.8s ease-in-out infinite;
+}
+
+.calendar-grid span.today {
+    animation: todayPulse 2.8s ease-in-out infinite;
+}
+
+.bottom-nav div {
+    transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.bottom-nav div:hover {
+    transform: translateY(-2px);
+    color: var(--accent);
+}
+
+.heat-grid i.on{
+    opacity:0;
+    transform:scale(0.35);
+    animation:heatFill 0.34s ease forwards, heatBlink 3.6s ease-in-out infinite;
+    animation-delay:var(--heat-delay, 0s), calc(var(--heat-delay, 0s) + 0.7s);
+}
+
+.card,
+.email-card,
+.member,
+.link-card,
+.legal {
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.card:hover,
+.email-card:hover,
+.member:hover,
+.link-card:hover,
+.legal:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 44px rgba(31, 51, 88, 0.09);
+    border-color: #dce3ef;
+}
+
+.card-icon {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-icon::after {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.7), transparent 65%);
+    transform: translateX(-70%) rotate(18deg);
+    animation: iconSheen 4.8s ease-in-out infinite;
+}
+
+.tab {
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.tab:hover {
+    transform: translateY(-1px);
+}
+
+.panel.active {
+    animation: panelFade 0.32s ease both;
+}
+
+.store,
+.btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after,
+.store::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.28), transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 0.55s ease;
+}
+
+.btn:hover::after,
+.store:hover::after {
+    transform: translateX(120%);
+}
+
+.app-banner {
+    position: relative;
+    overflow: hidden;
+}
+
+.app-banner::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    top: -110px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    animation: bannerOrb 8s ease-in-out infinite;
+}
+
+.app-banner > * {
+    position: relative;
+    z-index: 1;
+}
+
+
+/* =========================================================
+   18. 공통 애니메이션 Keyframes
+   - pulse, float, sheen, fade 등 페이지 전반에서 쓰는 움직임
+   ========================================================= */
+
+@keyframes calmPulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(0, 152, 201, 0.18);
+    }
+    50% {
+        opacity: 0.72;
+        box-shadow: 0 0 0 7px rgba(0, 152, 201, 0.08);
+    }
+}
+
+@keyframes phoneFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes softLift {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes sideFloat {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+    }
+    50% {
+        transform: translateY(-8px) translateX(3px);
+    }
+}
+
+@keyframes chipDrift {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes progressSweep {
+    0% {
+        left: -45%;
+    }
+    60%, 100% {
+        left: 110%;
+    }
+}
+
+@keyframes todayPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(56, 89, 137, 0.12);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(56, 89, 137, 0.06);
+    }
+}
+
+@keyframes heatBlink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.58;
+    }
+}
+
+@keyframes iconSheen {
+    0%, 55% {
+        transform: translateX(-80%) rotate(18deg);
+    }
+    75%, 100% {
+        transform: translateX(80%) rotate(18deg);
+    }
+}
+
+@keyframes panelFade {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bannerOrb {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(-18px, 20px) scale(1.06);
+    }
+}
+
+@keyframes heatFill {
+    0% {
+        opacity:0;
+        transform:scale(0.35);
+    }
+    70% {
+        opacity:1;
+        transform:scale(1.18);
+    }
+    100% {
+        opacity:1;
+        transform:scale(1);
+    }
+}
+/* =========================================================
+   19. 접근성: 모션 감소 설정 대응
+   - 사용자가 모션 줄이기를 켠 경우 애니메이션을 최소화
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+
+
+/* =========================================================
+   20. 반응형 레이아웃
+   - 태블릿/모바일 화면에서 그리드, 카드, 헤더 구조 조정
+   ========================================================= */
+
+@media (max-width: 980px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .preview-wrap { min-height: 610px; }
+    .phone { margin: 0 auto; }
+    .heat-card { left: 5%; }
+    .floating-mail { right: 4%; }
+    .cards, .team-grid, .link-grid { grid-template-columns: repeat(2, 1fr); }
+    .email-grid { grid-template-columns: repeat(2, 1fr); }
+    .app-banner { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+    .menu { display: none; position: fixed; top: 82px; left: 20px; right: 20px; background: rgba(255,255,255,0.97); border: 1px solid var(--line); border-radius: 22px; padding: 12px; box-shadow: var(--shadow); flex-direction: column; align-items: stretch; }
+    .menu.open { display: flex; }
+    .hamburger { display: block; }
+    .nav-right .btn-primary { display: none; }
+    .hero { padding-top: 60px; }
+    section { padding: 62px 0; }
+    .preview-wrap { min-height: auto; }
+    .phone { width: min(320px, 100%); height: 590px; }
+    .heat-card, .floating-mail { position: static; width: 100%; margin: 14px auto 0; }
+    .cards, .team-grid, .link-grid, .email-grid, .legal-grid { grid-template-columns: 1fr; }
+    .process-tabs { grid-template-columns: repeat(2, 1fr); }
+    .team-top { flex-direction: column; align-items: stretch; }
+    .footer-inner { flex-direction: column; }
+    .footer-links { justify-content: flex-start; }
+}
+
+@media (max-width: 460px) {
+    .container { width: min(calc(100% - 28px), var(--max)); }
+    .logo-img { height: 38px; }
+    .hero h1 { font-size: 40px; }
+    .hero-desc { font-size: 16px; }
+    .app-banner { padding: 26px 22px; }
+    .legal { align-items: flex-start; flex-direction: column; }
+}
+
+
+/* =========================================================
+   21. 앱 투어 섹션
+   - 앱 내부 화면을 목업 형태로 보여주는 인터랙티브 소개 영역
+   - 기존 스타일 값은 유지하고, 섹션 구분용 주석만 추가
+   ========================================================= */
+
+.app-tour{position:relative;overflow:hidden}
+.app-tour::before{content:"";position:absolute;left:-120px;top:80px;width:280px;height:280px;border-radius:50%;background:rgba(25,215,189,0.11);filter:blur(6px)}
+.tour-wrap{display:grid;grid-template-columns:420px 1fr;gap:34px;align-items:center;background:linear-gradient(135deg,#fff,#f4f7fb);border:1px solid var(--line);border-radius:var(--radius-xl);padding:34px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.tour-wrap::after{content:"";position:absolute;right:-90px;bottom:-120px;width:260px;height:260px;border-radius:50%;background:rgba(0,152,201,0.09)}
+.tour-phone{position:relative;z-index:1;width:310px;height:610px;margin:0 auto;border-radius:42px;background:#eef1f6;padding:13px;box-shadow:0 28px 70px rgba(31,51,88,0.16);animation:phoneFloat 7s ease-in-out infinite}
+.tour-screen{height:100%;border-radius:32px;background:#f8f9fc;padding:24px 20px;overflow:hidden;position:relative}
+.tour-status{display:flex;justify-content:space-between;align-items:center;color:var(--accent2);font-size:12px;font-weight:950;margin-bottom:28px}
+.tour-content{display:none;animation:tourSlide 0.38s ease both}
+.tour-content.active{display:block}
+.tour-content h3{font-size:27px;letter-spacing:-0.055em;margin-bottom:8px}
+.tour-content p{color:var(--text2);font-size:13px;line-height:1.65;margin-bottom:22px}
+.mock-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:20px}
+.mock-calendar span{height:38px;display:grid;place-items:center;border-radius:14px;background:#eef2f8;color:#8b95a8;font-size:12px;font-weight:950}
+.mock-calendar span.active{background:var(--accent);color:#fff}
+.mock-routine{height:52px;border-radius:18px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;padding:0 15px;margin-bottom:10px;color:var(--text2);font-size:13px;font-weight:900;box-shadow:0 10px 24px rgba(31,51,88,0.045)}
+.mock-routine::before{content:"";width:18px;height:18px;border-radius:7px;border:2px solid #d6dce8;margin-right:10px}
+.mock-routine.checked::before{background:var(--mint);border-color:var(--mint)}
+.mock-category{height:58px;border-radius:20px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;padding:0 18px;margin-bottom:12px;font-size:15px;font-weight:950;box-shadow:0 10px 24px rgba(31,51,88,0.045)}
+.mock-category::before{content:"";width:12px;height:12px;border-radius:50%;margin-right:12px}
+.mock-category.blue::before{background:var(--blue)}
+.mock-category.mint::before{background:var(--mint)}
+.mock-category.gray::before{background:#9ba5b8}
+.hidden-card{opacity:0.48}
+.mock-input{height:48px;border-radius:16px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;padding:0 14px;margin-bottom:10px;color:var(--text2);font-size:13px;font-weight:850}
+.mock-submit{width:100%;height:48px;border:0;border-radius:16px;background:var(--accent);color:#fff;font-size:14px;font-weight:950;margin-top:8px}
+.mock-heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:15px}
+.mock-heatmap i{aspect-ratio:1;border-radius:4px;background:#edf0f5;border:1px solid #dde3ec}
+.mock-heatmap i.on{background:var(--mint);border-color:var(--mint);animation:heatBlink 3.5s ease-in-out infinite}
+.mock-ai-card{border-radius:18px;background:#fff;border:1px solid var(--line);padding:15px;margin-bottom:10px;color:var(--accent2);font-size:14px;font-weight:950;box-shadow:0 10px 24px rgba(31,51,88,0.045)}
+.mock-ai-card::before{content:"AI";display:inline-grid;place-items:center;width:30px;height:24px;border-radius:9px;background:#eef2f8;color:var(--accent);font-size:11px;font-weight:950;margin-right:8px}
+.tour-list{position:relative;z-index:1;display:grid;gap:12px}
+.tour-item{width:100%;border:1px solid var(--line);background:#fff;border-radius:24px;padding:18px 20px;text-align:left;cursor:pointer;display:grid;grid-template-columns:54px 1fr;gap:4px 14px;align-items:center;transition:0.22s ease;box-shadow:0 10px 26px rgba(31,51,88,0.045)}
+.tour-item b{grid-row:1/3;width:44px;height:44px;display:grid;place-items:center;border-radius:16px;background:#eef2f8;color:var(--accent);font-size:14px}
+.tour-item span{color:var(--text);font-size:18px;font-weight:950;letter-spacing:-0.045em}
+.tour-item small{color:var(--muted);font-size:13px;font-weight:800;line-height:1.5}
+.tour-item:hover,.tour-item.active{transform:translateX(6px);border-color:#dce3ef;box-shadow:0 16px 38px rgba(31,51,88,0.08)}
+.tour-item.active{background:var(--accent)}
+.tour-item.active b{background:#fff;color:var(--accent)}
+.tour-item.active span{color:#fff}
+.tour-item.active small{color:rgba(255,255,255,0.75)}
+
+/* 앱 투어 패널 전환 애니메이션 */
+@keyframes tourSlide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+
+/* 앱 투어 섹션 반응형 처리 */
+@media(max-width:980px){.tour-wrap{grid-template-columns:1fr}.tour-phone{width:min(310px,100%)}}
+@media(max-width:560px){.tour-wrap{padding:24px 18px}.tour-phone{height:570px}.tour-item{grid-template-columns:46px 1fr;padding:15px}.tour-item b{width:38px;height:38px}.tour-item span{font-size:16px}}
+
+/* 앱 투어 섹션 이미지 처리 */
+.tour-screen{padding:0;overflow:hidden}
+.tour-status{display:none}
+.tour-content{height:100%}
+.tour-screenshot{display:block;width:100%;height:100%;object-fit:contain;border-radius:32px;background:#f8f9fc}
+.tour-empty{height:100%;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:24px 20px}
+.tour-empty strong{font-size:26px;line-height:1.25;letter-spacing:-0.055em;color:var(--text)}
+.tour-empty p{color:var(--text2);font-size:14px;line-height:1.65;margin-bottom:10px}

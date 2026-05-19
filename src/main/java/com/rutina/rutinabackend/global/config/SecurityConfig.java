@@ -30,6 +30,15 @@ public class SecurityConfig {
 
     // 인증 없이 접근 가능한 엔드포인트
     private static final String[] PUBLIC_URLS = {
+            "/",
+            "/index.html",
+
+            "/official",
+            "/official/",
+            "/official/**",
+
+            "/favicon.ico",
+
             "/api/v1/auth/**",
             "/api/v1/users/password-reset",
             "/api/ai/**",
