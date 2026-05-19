@@ -22,10 +22,10 @@
         <nav class="menu" id="menu">
             <a href="#app-tour">앱 투어</a><a href="#service">서비스</a><a href="#features">기능</a><a href="#contact">문의</a><a href="#team">팀</a><a href="#links">링크</a><a href="#policy">약관</a>
         </nav>
-        <div class="nav-right">
-            <a class="btn btn-primary" href="#app">앱 링크</a>
-            <button class="hamburger" id="hamburger" type="button" aria-label="메뉴 열기"><span></span><span></span><span></span></button>
-        </div>
+    <!--       <div class="nav-right">-->
+    <!--            <a class="btn btn-primary" href="#app">앱 링크</a>-->
+    <!--            <button class="hamburger" id="hamburger" type="button" aria-label="메뉴 열기"><span></span><span></span><span></span></button>-->
+    <!--        </div>-->
     </div>
 </header>
 
@@ -244,10 +244,10 @@
         heatGrid.appendChild(cell);
     }
     // 모바일 화면에서 햄버거 버튼을 클릭하면 메뉴를 열고 닫습니다.
-    const hamburger = document.getElementById("hamburger");
-    const menu = document.getElementById("menu");
-    hamburger.addEventListener("click", () => { menu.classList.toggle("open"); });
-    document.querySelectorAll(".menu a").forEach((link) => { link.addEventListener("click", () => menu.classList.remove("open")); });
+    // const hamburger = document.getElementById("hamburger");
+    // const menu = document.getElementById("menu");
+    // hamburger.addEventListener("click", () => { menu.classList.toggle("open"); });
+    // document.querySelectorAll(".menu a").forEach((link) => { link.addEventListener("click", () => menu.classList.remove("open")); });
 
     // Service 섹션의 탭 버튼을 클릭하면 해당 설명 패널만 보이도록 전환합니다.
     const tabs = document.querySelectorAll(".tab");
@@ -295,3 +295,4 @@
 <script src="/official/guard.js"></script>
 </body>
 </html>
+
