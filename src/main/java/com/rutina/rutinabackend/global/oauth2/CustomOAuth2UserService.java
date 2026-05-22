@@ -43,10 +43,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // provider + providerId 기준으로 기존 회원 조회, 없으면 자동 가입
         Optional<User> existingUser = userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId());
-        boolean isNewUser = existingUser.isEmpty();
 
         User user;
-        if (isNewUser) {
+        if (existingUser.isEmpty()) {
             // 동일 이메일 계정 존재 시 예외 처리
             // 로컬 회원가입과 동일하게 탈퇴 계정의 재가입 제한을 적용합니다.
             userRepository.findByEmailIncludingDeleted(email).ifPresent(existing -> {
@@ -70,6 +69,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         } else {
             user = existingUser.get();
         }
+
+        // 프로필 완성 여부 확인
+        boolean isNewUser = user.getAge() == null || user.getGender() == null || user.getJob() == null;
 
         Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
         attributes.put("userId", user.getId());
