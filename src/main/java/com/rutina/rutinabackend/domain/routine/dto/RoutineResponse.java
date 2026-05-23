@@ -29,6 +29,14 @@ public class RoutineResponse {
     private LocalDate startAt;
     private LocalDate endAt;
     private Boolean isCompleted;        // date 없는 조회 시 null, date 있는 조회 시 true/false
+    private Boolean isExpired;
+
+    private static boolean computeIsExpired(Routine routine) {
+        LocalDate today = LocalDate.now();
+        if (routine.getEndAt() != null && routine.getEndAt().isBefore(today)) return true;
+        if (routine.getRepeatType() == RepeatType.NONE && routine.getStartAt().isBefore(today)) return true;
+        return false;
+    }
 
     // 엔티티 → 응답 DTO 변환 정적 팩토리 (date 없는 조회용 - isCompleted = null)
     public static RoutineResponse from(Routine routine) {
@@ -52,6 +60,7 @@ public class RoutineResponse {
                 .endTime(routine.getEndTime())
                 .startAt(routine.getStartAt())
                 .endAt(routine.getEndAt())
+                .isExpired(computeIsExpired(routine))
                 .build();
     }
 
@@ -78,6 +87,7 @@ public class RoutineResponse {
                 .startAt(routine.getStartAt())
                 .endAt(routine.getEndAt())
                 .isCompleted(isCompleted)
+                .isExpired(computeIsExpired(routine))
                 .build();
     }
 }
