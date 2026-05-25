@@ -95,10 +95,11 @@ public class RoutineService {
     // date가 있으면 2단계 필터링:
     //   1단계: DB 쿼리로 유효 기간(start_at <= date <= end_at) 내 루틴 추출
     //   2단계: isActiveOnDate()로 repeat_type별 날짜 계산 필터링
-    // date가 있으면 DailyTarget 일괄 조회 후 isCompleted 포함 응답 (N+1 방지)
+    // date가 없으면 오늘 기준으로 isCompleted 계산 (null 방지)
     public List<RoutineResponse> getRoutines(Long userId, Long categoryId, LocalDate date) {
-        List<Routine> routines;
+        LocalDate targetDate = date != null ? date : LocalDate.now();
 
+        List<Routine> routines;
         if (date == null && categoryId == null) {
             routines = routineRepository.findByUserId(userId);
         } else if (date == null) {
@@ -115,26 +116,26 @@ public class RoutineService {
                     .collect(Collectors.toList());
         }
 
-        if (date == null) {
-            return routines.stream()
-                    .map(RoutineResponse::from)
-                    .collect(Collectors.toList());
-        }
-
         List<Long> routineIds = routines.stream().map(Routine::getId).collect(Collectors.toList());
         Map<Long, Boolean> completedMap = dailyTargetRepository
-                .findByRoutineIdInAndTargetDate(routineIds, date)
+                .findByRoutineIdInAndTargetDate(routineIds, targetDate)
                 .stream()
                 .collect(Collectors.toMap(dt -> dt.getRoutine().getId(), DailyTarget::getIsCompleted));
 
         return routines.stream()
-                .map(r -> RoutineResponse.from(r, completedMap.getOrDefault(r.getId(), false)))
+                .map(r -> RoutineResponse.from(r, computeIsCompleted(r, targetDate, completedMap)))
                 .collect(Collectors.toList());
     }
 
     // ── 루틴 단건 조회 ─────────────────────────────────────────────
     public RoutineResponse getRoutine(Long userId, Long routineId) {
-        return RoutineResponse.from(findRoutine(userId, routineId));
+        Routine routine = findRoutine(userId, routineId);
+        LocalDate today = LocalDate.now();
+        Map<Long, Boolean> completedMap = dailyTargetRepository
+                .findByRoutineIdInAndTargetDate(List.of(routine.getId()), today)
+                .stream()
+                .collect(Collectors.toMap(dt -> dt.getRoutine().getId(), DailyTarget::getIsCompleted));
+        return RoutineResponse.from(routine, computeIsCompleted(routine, today, completedMap));
     }
 
     // ── 타임테이블 조회 ────────────────────────────────────────────
@@ -408,6 +409,44 @@ public class RoutineService {
         return days.stream()
                 .map(Enum::name)
                 .collect(Collectors.joining(","));
+    }
+
+    // ── isCompleted 계산 ───────────────────────────────────────────
+    // 1. endAt < 오늘 → 기간 만료, 토글 무관 true
+    // 2. NONE 타입 → 오늘이 startAt이고 오늘 DailyTarget 완료
+    // 3. endAt 있음 → 오늘이 마지막 실제 반복일이고 오늘 DailyTarget 완료
+    // 나머지 → false
+    private boolean computeIsCompleted(Routine routine, LocalDate today, Map<Long, Boolean> completedMap) {
+        boolean todayCompleted = completedMap.getOrDefault(routine.getId(), false);
+
+        if (routine.getEndAt() != null && routine.getEndAt().isBefore(today)) {
+            return true;
+        }
+
+        if (routine.getRepeatType() == RepeatType.NONE) {
+            return routine.getStartAt().equals(today) && todayCompleted;
+        }
+
+        if (routine.getEndAt() != null) {
+            LocalDate lastRepeatDate = findLastRepeatDate(routine);
+            if (lastRepeatDate != null && lastRepeatDate.equals(today)) {
+                return todayCompleted;
+            }
+        }
+
+        return false;
+    }
+
+    // endAt부터 startAt까지 역탐색하며 isActiveOnDate()가 true인 첫 번째 날짜 반환
+    private LocalDate findLastRepeatDate(Routine routine) {
+        LocalDate cursor = routine.getEndAt();
+        while (!cursor.isBefore(routine.getStartAt())) {
+            if (isActiveOnDate(routine, cursor)) {
+                return cursor;
+            }
+            cursor = cursor.minusDays(1);
+        }
+        return null;
     }
 
     // ── 날짜별 활성 여부 판단 ──────────────────────────────────────
