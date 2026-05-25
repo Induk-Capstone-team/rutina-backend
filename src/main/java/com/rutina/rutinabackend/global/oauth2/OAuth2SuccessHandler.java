@@ -2,9 +2,9 @@ package com.rutina.rutinabackend.global.oauth2;
 
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
-import com.rutina.rutinabackend.global.auth.token.RefreshTokenStore;
+import com.rutina.rutinabackend.global.auth.oauth2.OAuth2LoginCode;
+import com.rutina.rutinabackend.global.auth.oauth2.OAuth2LoginCodeStore;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
-import com.rutina.rutinabackend.global.jwt.JwtProvider;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,14 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtProvider jwtProvider;
+    private static final long OAUTH2_LOGIN_CODE_TTL_SECONDS = 120;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final UserRepository userRepository;
-    private final RefreshTokenStore refreshTokenStore;
+    private final OAuth2LoginCodeStore oAuth2LoginCodeStore;
 
     @Value("${oauth2.redirect-url}")
     private String redirectUrl;
@@ -40,25 +44,29 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         Long userId = Long.valueOf(String.valueOf(oauth2User.getAttributes().get("userId")));
         boolean isNewUser = Boolean.TRUE.equals(oauth2User.getAttributes().get("isNewUser"));
-        String device = request.getHeader("User-Agent"); // 기기별 RefreshToken 관리용
+        String device = request.getHeader("User-Agent");
 
         User user = userRepository.findById(userId)
                 .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
 
-        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
-
-        // getRefreshTokenExpiry()는 ms 단위, store 인터페이스는 seconds 단위
-        refreshTokenStore.save(user.getId(), device, refreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
+        String code = generateLoginCode();
+        oAuth2LoginCodeStore.save(
+                code,
+                new OAuth2LoginCode(user.getId(), isNewUser, device),
+                OAUTH2_LOGIN_CODE_TTL_SECONDS
+        );
 
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUrl)
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
-                .queryParam("tokenType", "Bearer")
-                .queryParam("isNewUser", isNewUser)
+                .queryParam("code", code)
                 .build()
                 .toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private String generateLoginCode() {
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
