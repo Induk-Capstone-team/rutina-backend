@@ -6,10 +6,14 @@ import com.rutina.rutinabackend.domain.user.dto.*;
 import com.rutina.rutinabackend.domain.user.entity.User;
 import com.rutina.rutinabackend.domain.user.repository.UserRepository;
 import com.rutina.rutinabackend.global.auth.apple.AppleIdentityTokenVerifier;
+import com.rutina.rutinabackend.global.auth.oauth2.OAuth2LoginCode;
+import com.rutina.rutinabackend.global.auth.oauth2.OAuth2LoginCodeStore;
 import com.rutina.rutinabackend.global.auth.token.RefreshTokenStore;
+import com.rutina.rutinabackend.global.exception.BusinessException;
 import com.rutina.rutinabackend.global.exception.ErrorCode;
 import com.rutina.rutinabackend.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -26,6 +30,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final EmailVerificationService emailVerificationService;
     private final AppleIdentityTokenVerifier appleIdentityTokenVerifier;
+    private final OAuth2LoginCodeStore oAuth2LoginCodeStore;
 
     // ── 회원가입 ───────────────────────────────────────────
     @Transactional
@@ -117,6 +122,27 @@ public class AuthService {
     @Transactional(readOnly = true)
     public boolean checkEmailDuplicate(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Transactional
+    public OAuth2LoginResponse exchangeOAuth2Code(OAuth2TokenExchangeRequest request, String device) {
+        OAuth2LoginCode loginCode = oAuth2LoginCodeStore.consume(request.code())
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.UNAUTHORIZED,
+                        "INVALID_OAUTH2_LOGIN_CODE",
+                        "유효하지 않거나 만료된 소셜 로그인 코드입니다."
+                ));
+
+        User user = userRepository.findById(loginCode.userId())
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
+        String tokenDevice = StringUtils.hasText(device) ? device : loginCode.device();
+
+        refreshTokenStore.save(user.getId(), tokenDevice, refreshToken, jwtProvider.getRefreshTokenExpiry() / 1000L);
+
+        return OAuth2LoginResponse.of(accessToken, refreshToken, loginCode.isNewUser());
     }
 
     @Transactional
