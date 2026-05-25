@@ -22,6 +22,7 @@ public class InMemoryOAuth2LoginCodeStore implements OAuth2LoginCodeStore {
 
     @Override
     public Optional<OAuth2LoginCode> consume(String code) {
+        // consume 호출 시 즉시 제거해 같은 code로 토큰을 여러 번 발급받지 못하게 합니다.
         Long expiry = expiries.remove(code);
         OAuth2LoginCode value = values.remove(code);
         if (expiry == null || value == null || System.currentTimeMillis() > expiry) {

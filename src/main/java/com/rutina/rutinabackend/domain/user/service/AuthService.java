@@ -126,6 +126,7 @@ public class AuthService {
 
     @Transactional
     public OAuth2LoginResponse exchangeOAuth2Code(OAuth2TokenExchangeRequest request, String device) {
+        // code는 토큰 발급 전 단계의 임시 교환권이므로 한 번만 소비합니다.
         OAuth2LoginCode loginCode = oAuth2LoginCodeStore.consume(request.code())
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.UNAUTHORIZED,

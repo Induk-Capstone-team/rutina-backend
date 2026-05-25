@@ -38,6 +38,7 @@ public class RedisOAuth2LoginCodeStore implements OAuth2LoginCodeStore {
     public Optional<OAuth2LoginCode> consume(String code) {
         String key = key(code);
         String value = redisTemplate.opsForValue().get(key);
+        // Redis에서도 조회 직후 삭제해 일회용 code 재사용을 막습니다.
         redisTemplate.delete(key);
         if (value == null) {
             return Optional.empty();

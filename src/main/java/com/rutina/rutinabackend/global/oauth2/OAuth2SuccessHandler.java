@@ -49,6 +49,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         User user = userRepository.findById(userId)
                 .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
 
+        // Redirect URL에 실제 토큰을 싣지 않기 위해 짧게 살아있는 교환용 code만 전달합니다.
         String code = generateLoginCode();
         oAuth2LoginCodeStore.save(
                 code,
