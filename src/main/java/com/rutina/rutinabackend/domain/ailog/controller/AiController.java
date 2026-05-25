@@ -22,6 +22,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/ai-routines")
 @RequiredArgsConstructor
@@ -116,6 +118,39 @@ public class AiController {
     }
 
     @Operation(
+            summary = "오늘 추천받은 AI 루틴 기록 조회",
+            description = """
+                로그인한 사용자가 오늘 AI에게 추천받은 루틴 기록을 조회합니다.
+
+                이 API는 과거 추천 기록 조회용이므로 AI를 새로 호출하지 않고,
+                하루 3회 추천 횟수도 차감하지 않습니다.
+
+                응답의 각 항목은 AI 루틴 추천 생성 API와 같은
+                recommendationId, categoryId, routines 구조로 반환됩니다.
+                따라서 프론트에서는 추천 생성 결과 화면과 같은 컴포넌트를 재사용할 수 있습니다.
+                """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "오늘 추천받은 AI 루틴 기록 조회 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패"
+            )
+    })
+    @GetMapping("/recommendations/today")
+    public ApiResponse<List<AiRoutineRecommendResponse>> getTodayRecommendations(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return ApiResponse.ok(
+                "오늘 추천받은 루틴 조회에 성공했습니다.",
+                aiService.getTodayRecommendations(userDetails)
+        );
+    }
+
+    @Operation(
             summary = "선택한 AI 추천 루틴 추가",
             description = """
                     AI 추천 결과 중 사용자가 선택한 루틴만 실제 routines 테이블에 추가합니다.
@@ -148,6 +183,8 @@ public class AiController {
                     description = "AI 추천 기록을 찾을 수 없음"
             )
     })
+
+
     @PostMapping("/{recommendationId}/add")
     public ApiResponse<AiRoutineAddResponse> addRecommendedRoutines(
             @AuthenticationPrincipal UserDetails userDetails,

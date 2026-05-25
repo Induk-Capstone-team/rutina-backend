@@ -27,6 +27,22 @@ public interface AiLogRepository extends JpaRepository<AiLog, Long> {
             OffsetDateTime end
     );
 
+    @Query("""
+        SELECT a
+        FROM AiLog a
+        WHERE a.user.id = :userId
+          AND a.requestType = :requestType
+          AND a.createdAt >= :start
+          AND a.createdAt < :end
+        ORDER BY a.createdAt DESC
+    """)
+        List<AiLog> findTodayRecommendations(
+                @Param("userId") Long userId,
+                @Param("requestType") String requestType,
+                @Param("start") OffsetDateTime start,
+                @Param("end") OffsetDateTime end
+        );
+
     // 루틴 삭제 전 먼저 호출 필수
     @Modifying
     @Query("UPDATE AiLog a SET a.routine = null WHERE a.routine.id IN :routineIds")
@@ -36,4 +52,5 @@ public interface AiLogRepository extends JpaRepository<AiLog, Long> {
     @Modifying
     @Query("UPDATE AiLog a SET a.user = null WHERE a.user.id = :userId")
     void anonymizeByUserId(@Param("userId") Long userId);
+
 }
