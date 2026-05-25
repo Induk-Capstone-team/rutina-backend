@@ -388,6 +388,50 @@ public class AiService {
     }
 
     /**
+     * 오늘 AI가 추천했던 루틴 기록 조회
+     *
+     * 추천 생성 API와 같은 AiRoutineRecommendResponse 형태로 반환한다.
+     * 그래서 프론트는 새 추천 결과 화면과 과거 추천 기록 화면에서 같은 컴포넌트를 재사용할 수 있다.
+     */
+    @Transactional(readOnly = true)
+    public List<AiRoutineRecommendResponse> getTodayRecommendations(UserDetails userDetails) {
+        User user = getLoginUser(userDetails);
+
+        LocalDate today = LocalDate.now(KOREA_ZONE);
+
+        OffsetDateTime startOfToday = today
+                .atStartOfDay(KOREA_ZONE)
+                .toOffsetDateTime();
+
+        OffsetDateTime startOfTomorrow = today
+                .plusDays(1)
+                .atStartOfDay(KOREA_ZONE)
+                .toOffsetDateTime();
+
+        List<AiLog> logs = aiLogRepository.findTodayRecommendations(
+                user.getId(),
+                REQUEST_TYPE_ROUTINE_RECOMMEND,
+                startOfToday,
+                startOfTomorrow
+        );
+
+        return logs.stream()
+                .map(this::toRecommendResponse)
+                .toList();
+    }
+
+    private AiRoutineRecommendResponse toRecommendResponse(AiLog aiLog) {
+        AiRoutinePromptLog promptLog = fromJson(aiLog.getPrompt(), AiRoutinePromptLog.class);
+        AiRoutineRecommendResult result = fromJson(aiLog.getResponse(), AiRoutineRecommendResult.class);
+
+        return new AiRoutineRecommendResponse(
+                aiLog.getId(),
+                promptLog.categoryId(),
+                result.routines()
+        );
+    }
+
+    /**
      * AI 추천 결과 정리
      *
      * 보정 내용:
