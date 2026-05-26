@@ -2,11 +2,14 @@ package com.rutina.rutinabackend.domain.routine.dto;
 
 import com.rutina.rutinabackend.domain.routine.entity.Routine;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public record RoutineHeatmapResponse(
         Long routineId,
         String title,
+        LocalDate startAt,
+        LocalDate endAt,
         RoutineHeatmapCategoryResponse category,
         Map<String, Boolean> completed
 ) {
@@ -15,6 +18,8 @@ public record RoutineHeatmapResponse(
         return new RoutineHeatmapResponse(
                 routine.getId(),
                 routine.getTitle(),
+                routine.getStartAt(),
+                routine.getEndAt(),
                 RoutineHeatmapCategoryResponse.from(routine.getCategory()),
                 completed
         );
