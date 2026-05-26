@@ -84,4 +84,16 @@ public class AuthController {
                 Map.of("isDuplicate", isDuplicate)
         );
     }
+
+    @Operation(summary = "소셜 로그인 코드 토큰 교환")
+    @SecurityRequirements({})
+    @PostMapping("/oauth2/token")
+    public ApiResponse<OAuth2LoginResponse> exchangeOAuth2Code(
+            @RequestBody @Valid OAuth2TokenExchangeRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String device = httpRequest.getHeader("User-Agent");
+        OAuth2LoginResponse response = authService.exchangeOAuth2Code(request, device);
+        return ApiResponse.ok("소셜 로그인에 성공했습니다.", response);
+    }
 }
