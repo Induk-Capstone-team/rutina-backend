@@ -97,6 +97,11 @@ public class User {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    // 프로필(나이/성별/직업)이 하나라도 비어 있으면 온보딩 미완료(신규 유저)로 판단
+    public boolean isOnboardingIncomplete() {
+        return this.age == null || this.gender == null || this.job == null;
+    }
+
     // 실제 레코드 삭제가 아닌 deleted_at 시각 기록
     public void softDelete() {
         this.deletedAt = OffsetDateTime.now();
