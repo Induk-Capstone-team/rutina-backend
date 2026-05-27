@@ -4,6 +4,7 @@ import com.rutina.rutinabackend.domain.ailog.repository.AiLogRepository;
 import com.rutina.rutinabackend.domain.category.repository.CategoryRepository;
 import com.rutina.rutinabackend.domain.email.service.EmailVerificationService;
 import com.rutina.rutinabackend.domain.routine.repository.RoutineRepository;
+import com.rutina.rutinabackend.domain.user.dto.NewUserStatusResponse;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
@@ -37,6 +38,13 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
         return UserResponse.from(user);
+    }
+
+    @Transactional(readOnly = true)
+    public NewUserStatusResponse getNewUserStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(ErrorCode.USER_NOT_FOUND::toException);
+        return NewUserStatusResponse.from(user);
     }
 
     @Transactional

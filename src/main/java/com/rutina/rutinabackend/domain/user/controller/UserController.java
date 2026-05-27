@@ -1,5 +1,6 @@
 package com.rutina.rutinabackend.domain.user.controller;
 
+import com.rutina.rutinabackend.domain.user.dto.NewUserStatusResponse;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateRequest;
 import com.rutina.rutinabackend.domain.user.dto.NicknameUpdateResponse;
 import com.rutina.rutinabackend.domain.user.dto.PasswordChangeRequest;
@@ -30,6 +31,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+
+    @Operation(
+            summary = "신규 유저 여부 확인",
+            description = "액세스 토큰으로 인증된 유저의 온보딩 완료 여부를 확인합니다. 프로필(나이/성별/직업)이 하나라도 비어 있으면 신규 유저로 판단합니다."
+    )
+    @GetMapping("/me/new-status")
+    public ApiResponse<NewUserStatusResponse> getNewUserStatus(@AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        NewUserStatusResponse response = userService.getNewUserStatus(userId);
+        return ApiResponse.ok("신규 유저 여부를 확인했습니다.", response);
+    }
 
     @Operation(summary = "내 정보 조회")
     @GetMapping("/me")

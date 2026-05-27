@@ -71,7 +71,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         }
 
         // 프로필 완성 여부 확인
-        boolean isNewUser = user.getAge() == null || user.getGender() == null || user.getJob() == null;
+        boolean isNewUser = user.isOnboardingIncomplete();
 
         Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
         attributes.put("userId", user.getId());
