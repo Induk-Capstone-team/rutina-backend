@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
@@ -39,6 +40,9 @@ public class RoutineService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final DailyTargetRepository dailyTargetRepository;
+
+    // 타임테이블 창의 시작/종료 기준 시각 (매일 04:00 ~ 익일 04:00)
+    private static final LocalTime TIMETABLE_START = LocalTime.of(4, 0);
 
     // ── 루틴 생성 ─────────────────────────────────────────────────
     @Transactional
@@ -137,18 +141,110 @@ public class RoutineService {
         return RoutineResponse.from(findRoutine(userId, routineId));
     }
 
+    // 루틴과 그 활성화 날짜를 함께 보관하는 내부 레코드
+    // candidateMap에 저장하여 isInTimetableWindow/computeRoutineStart 에 정확한 activationDate를 전달
+    private record RoutineWithActivation(Routine routine, LocalDate activationDate) {}
+
     // ── 타임테이블 조회 ────────────────────────────────────────────
-    // 특정 날짜에 활성화되는 루틴 중 시간(startTime)이 있는 것만 반환
-    // startTime 오름차순 정렬
-    // date 파라미터 필수
+    // 창: [date 04:00, date+1 04:00)
+    // 창이 자정을 걸치므로 date와 date-1 양쪽에서 후보를 수집한 뒤
+    // 루틴의 [startTime, endTime) 구간이 창과 겹치는 것만 반환
+    // routineStart(LocalDateTime) 오름차순 정렬
     public List<RoutineTimetableResponse> getTimetable(Long userId, LocalDate date) {
-        return routineRepository.findActiveByUserIdAndDate(userId, date)
+        LocalDate prevDate = date.minusDays(1);
+
+        // 전날 후보를 먼저, 당일 후보를 나중에 Map에 삽입하여
+        // 양날 모두 활성인 루틴(DAILY 등)은 당일 기준으로 덮어씌워짐
+        // RoutineWithActivation에 실제 활성화 날짜를 함께 보존하여 후속 계산에 사용
+        Map<Long, RoutineWithActivation> candidateMap = new LinkedHashMap<>();
+        routineRepository.findActiveByUserIdAndDate(userId, prevDate)
+                .stream()
+                .filter(r -> isActiveOnDate(r, prevDate))
+                .forEach(r -> candidateMap.put(r.getId(), new RoutineWithActivation(r, prevDate)));
+        routineRepository.findActiveByUserIdAndDate(userId, date)
                 .stream()
                 .filter(r -> isActiveOnDate(r, date))
-                .filter(r -> r.getStartTime() != null)
-                .sorted(Comparator.comparing(Routine::getStartTime))
-                .map(RoutineTimetableResponse::from)
+                .forEach(r -> candidateMap.put(r.getId(), new RoutineWithActivation(r, date)));
+
+        LocalDateTime windowStart = date.atTime(TIMETABLE_START);
+        LocalDateTime windowEnd   = date.plusDays(1).atTime(TIMETABLE_START);
+
+        // 타임테이블 창과 겹치는 루틴만 남기고 routineStart 오름차순 정렬 후 클리핑 적용
+        return candidateMap.values().stream()
+                .filter(rwa -> isInTimetableWindow(rwa.routine(), rwa.activationDate(), date))
+                .sorted(Comparator.comparing(rwa -> computeRoutineStart(rwa.routine(), rwa.activationDate())))
+                .map(rwa -> {
+                    Routine r = rwa.routine();
+                    LocalDate activationDate = rwa.activationDate();
+                    LocalDateTime routineStart = computeRoutineStart(r, activationDate);
+                    // endTime이 null인 루틴: 창의 끝(windowEnd)을 routineEnd로 설정 → clipEnd가 TIMETABLE_START 반환
+                    LocalDateTime routineEnd = (r.getEndTime() == null)
+                            ? windowEnd
+                            : (r.getEndTime().isBefore(r.getStartTime())
+                                    // endTime < startTime → 자정을 넘긴 구간이므로 익일로 보정
+                                    ? activationDate.plusDays(1).atTime(r.getEndTime())
+                                    : activationDate.atTime(r.getEndTime()));
+                    LocalTime clippedStart = clipStart(routineStart, windowStart);
+                    LocalTime clippedEnd   = clipEnd(routineEnd, windowEnd);
+                    return RoutineTimetableResponse.builder()
+                            .routineId(r.getId())
+                            .categoryId(r.getCategory().getId())
+                            .categoryColorCode(r.getCategory().getColorCode())
+                            .title(r.getTitle())
+                            .startTime(clippedStart)
+                            .endTime(clippedEnd)
+                            .build();
+                })
                 .collect(Collectors.toList());
+    }
+
+    // 루틴의 [startTime, endTime) 구간이 타임테이블 창과 겹치는지 판단
+    // 창: [requestDate 04:00, requestDate+1 04:00)
+    // activationDate는 후보 수집 단계에서 결정된 값을 외부에서 전달받음 (재계산 금지)
+    // endTime이 startTime보다 작으면 자정을 넘긴 것으로 간주
+    private boolean isInTimetableWindow(Routine r, LocalDate activationDate, LocalDate requestDate) {
+        // startTime이 없는 루틴은 타임라인에 표시할 위치가 없으므로 제외
+        if (r.getStartTime() == null) {
+            return false;
+        }
+
+        LocalDateTime windowStart = requestDate.atTime(TIMETABLE_START);
+        LocalDateTime windowEnd   = requestDate.plusDays(1).atTime(TIMETABLE_START);
+
+        // activationDate는 candidateMap 구성 시 이미 결정된 날짜를 그대로 사용
+        LocalDateTime routineStart = activationDate.atTime(r.getStartTime());
+
+        if (r.getEndTime() == null) {
+            // endTime이 없는 루틴(종일): startTime이 창 [windowStart, windowEnd) 안에 있으면 포함
+            return !routineStart.isBefore(windowStart) && routineStart.isBefore(windowEnd);
+        }
+
+        // endTime < startTime이면 자정을 넘긴 것 → 익일 날짜로 보정
+        LocalDateTime routineEnd = r.getEndTime().isBefore(r.getStartTime())
+                ? activationDate.plusDays(1).atTime(r.getEndTime())
+                : activationDate.atTime(r.getEndTime());
+
+        // 겹침 조건: routineStart < windowEnd AND routineEnd > windowStart
+        return routineStart.isBefore(windowEnd) && routineEnd.isAfter(windowStart);
+    }
+
+    // 루틴의 타임테이블 내 시작 LocalDateTime 계산 (정렬 기준)
+    // activationDate는 후보 수집 단계에서 결정된 값을 외부에서 전달받음 (재계산 금지)
+    private LocalDateTime computeRoutineStart(Routine r, LocalDate activationDate) {
+        return activationDate.atTime(r.getStartTime());
+    }
+
+    // routineStart가 창 시작(windowStart)보다 앞이면 TIMETABLE_START(04:00)로 클리핑
+    // clippedStart = routineStart < windowStart ? TIMETABLE_START : r.getStartTime()
+    private LocalTime clipStart(LocalDateTime routineStart, LocalDateTime windowStart) {
+        return routineStart.isBefore(windowStart) ? TIMETABLE_START : routineStart.toLocalTime();
+    }
+
+    // routineEnd가 창 끝(windowEnd)보다 뒤이면 TIMETABLE_START(04:00)로 클리핑
+    // clippedEnd = routineEnd > windowEnd ? TIMETABLE_START : r.getEndTime()
+    // endTime == null인 경우 routineEnd = windowEnd이므로 isAfter가 false → toLocalTime() = TIMETABLE_START
+    private LocalTime clipEnd(LocalDateTime routineEnd, LocalDateTime windowEnd) {
+        return routineEnd.isAfter(windowEnd) ? TIMETABLE_START : routineEnd.toLocalTime();
     }
 
     // 연간 히트맵: 완료 기록이 있는 날짜만 true로 표시
