@@ -156,6 +156,10 @@ public class RoutineService {
         // 전날 후보를 먼저, 당일 후보를 나중에 Map에 삽입하여
         // 양날 모두 활성인 루틴(DAILY 등)은 당일 기준으로 덮어씌워짐
         // RoutineWithActivation에 실제 활성화 날짜를 함께 보존하여 후속 계산에 사용
+        LocalDate nextDate = date.plusDays(1);
+
+        // 전날 → 당일 → 내일 순으로 삽입하여 우선순위 보장
+        // 내일 00:00~03:59 루틴도 오늘 창(오늘 04:00~내일 04:00)과 겹칠 수 있으므로 포함
         Map<Long, RoutineWithActivation> candidateMap = new LinkedHashMap<>();
         routineRepository.findActiveByUserIdAndDate(userId, prevDate)
                 .stream()
@@ -165,6 +169,13 @@ public class RoutineService {
                 .stream()
                 .filter(r -> isActiveOnDate(r, date))
                 .forEach(r -> candidateMap.put(r.getId(), new RoutineWithActivation(r, date)));
+
+        // 내일 기준 후보 수집
+        // DAILY 등 오늘에도 활성인 루틴은 이미 candidateMap에 있으므로 덮어쓰지 않음
+        routineRepository.findActiveByUserIdAndDate(userId, nextDate)
+                .stream()
+                .filter(r -> isActiveOnDate(r, nextDate))
+                .forEach(r -> candidateMap.putIfAbsent(r.getId(), new RoutineWithActivation(r, nextDate)));
 
         LocalDateTime windowStart = date.atTime(TIMETABLE_START);
         LocalDateTime windowEnd   = date.plusDays(1).atTime(TIMETABLE_START);
@@ -181,9 +192,9 @@ public class RoutineService {
                     LocalDateTime routineEnd = (r.getEndTime() == null)
                             ? windowEnd
                             : (r.getEndTime().isBefore(r.getStartTime())
-                                    // endTime < startTime → 자정을 넘긴 구간이므로 익일로 보정
-                                    ? activationDate.plusDays(1).atTime(r.getEndTime())
-                                    : activationDate.atTime(r.getEndTime()));
+                                // endTime < startTime → 자정을 넘긴 구간이므로 익일로 보정
+                                ? activationDate.plusDays(1).atTime(r.getEndTime())
+                                : activationDate.atTime(r.getEndTime()));
                     LocalTime clippedStart = clipStart(routineStart, windowStart);
                     LocalTime clippedEnd   = clipEnd(routineEnd, windowEnd);
                     return RoutineTimetableResponse.builder()
@@ -430,7 +441,7 @@ public class RoutineService {
 
     // ── 새로 추가할 루틴(미저장)이 주어진 날짜에 활성화되는지 확인 ──
     private boolean isNewRoutineActiveOnDate(RepeatType type, Integer interval, RepeatUnit unit,
-                                              String repeatDays, LocalDate startAt, LocalDate date) {
+                                             String repeatDays, LocalDate startAt, LocalDate date) {
         return switch (type) {
             case NONE -> date.equals(startAt);
             case DAILY -> true;
@@ -445,7 +456,7 @@ public class RoutineService {
 
     // ── CUSTOM 타입 신규 루틴 활성 여부 계산 ──────────────────────
     private boolean isNewRoutineCustomActiveOnDate(LocalDate startAt, int interval, RepeatUnit unit,
-                                                    String repeatDays, LocalDate date) {
+                                                   String repeatDays, LocalDate date) {
         return switch (unit) {
             case DAY -> ChronoUnit.DAYS.between(startAt, date) % interval == 0;
             case WEEK -> ChronoUnit.WEEKS.between(startAt, date) % interval == 0
