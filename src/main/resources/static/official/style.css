@@ -712,7 +712,7 @@ section { padding: 72px 0; }
 .tour-screen{padding:0;overflow:hidden}
 .tour-status{display:none}
 .tour-content{height:100%}
-.tour-screenshot{display:block;width:100%;height:100%;object-fit:contain;border-radius:32px;background:#f8f9fc}
+.tour-screenshot{display:block;width:100%;height:100%;object-fit:contain;border-radius:32px;background:#F3F4F7}
 .tour-empty{height:100%;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:24px 20px}
 .tour-empty strong{font-size:26px;line-height:1.25;letter-spacing:-0.055em;color:var(--text)}
 .tour-empty p{color:var(--text2);font-size:14px;line-height:1.65;margin-bottom:10px}
